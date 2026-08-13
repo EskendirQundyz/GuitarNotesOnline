@@ -1,0 +1,5456 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GuitarNotes — Учёба нот на грифе</title>
+  <style>
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-hover: #f8f8fa;
+  --border: #e4e4ea;
+  --text: #1a1a22;
+  --text-muted: #6b6b7b;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-soft: rgba(37, 99, 235, 0.08);
+  --radius: 12px;
+  --shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.5;
+}
+
+.app {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 20px 48px;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.header h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.app-version {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  vertical-align: middle;
+  margin-left: 0.35em;
+}
+
+.mode-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.mode-pill {
+  appearance: none;
+  border: 2px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 10px 18px;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s, color 0.2s;
+}
+
+.mode-pill:hover {
+  border-color: #c8c8d4;
+  background: var(--surface-hover);
+}
+
+.mode-pill.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-hover);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.mode-pill:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.mode-pill:disabled:hover {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: none;
+}
+
+
+.fretboard-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 24px 24px;
+  box-shadow: var(--shadow);
+}
+
+.fretboard-container {
+  width: 100%;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.find-note-stats-panel {
+  width: 100%;
+  margin-top: 20px;
+  padding: 14px 12px 10px;
+  background: #f8f8fa;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.find-note-stats-panel[hidden] {
+  display: none;
+}
+
+.find-note-stats-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.find-note-stats-title {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.find-note-stats-reset-btn {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  color: #8b1a1a;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.find-note-stats-reset-btn:hover {
+  background: #fff5f5;
+  border-color: #d4a5a5;
+}
+
+.find-note-stats-reset-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.fretboard-stats-view svg .stats-note-dot {
+  pointer-events: none;
+}
+
+.fretboard-stats-view svg .stats-note-dot--strong {
+  filter: drop-shadow(0 0 3px rgba(34, 197, 94, 0.55));
+}
+
+.fretboard-stats-view svg .stats-note-dot--mid {
+  filter: drop-shadow(0 0 1px rgba(34, 197, 94, 0.2));
+}
+
+.boot-loading,
+.boot-error {
+  margin: 0;
+  padding: 28px 16px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.boot-error {
+  color: #8b1a1a;
+}
+
+.boot-error code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.88em;
+}
+
+.boot-help-list {
+  margin: 10px auto 0;
+  padding-left: 1.2em;
+  max-width: 28rem;
+  text-align: left;
+}
+
+.boot-error a {
+  color: var(--accent);
+  word-break: break-all;
+}
+
+.open-online-banner {
+  margin: 0 0 16px;
+  padding: 16px 18px;
+  border: 2px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--accent-soft);
+  text-align: center;
+  display: none;
+}
+
+html.mma-ios-file .open-online-banner {
+  display: block;
+}
+
+body.app-ready .open-online-banner {
+  display: none;
+}
+
+.open-online-banner p {
+  margin: 0 0 10px;
+  color: var(--text);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.boot-static-fallback {
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.boot-static-fallback p {
+  margin: 0 0 10px;
+}
+
+.open-online-btn {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 12px 20px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.95rem;
+  text-decoration: none;
+  box-shadow: 0 2px 10px rgba(37, 99, 235, 0.25);
+}
+
+.open-online-btn:hover {
+  background: var(--accent-hover);
+}
+
+.fretboard-container svg {
+  display: block;
+  min-width: 100%;
+}
+
+.fretboard-container .string-label,
+.fretboard-container .string-label-text {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  letter-spacing: 0.02em;
+}
+
+.fretboard-container svg .strings-layer:has(.find-note-target-string) .string-visual:not(.find-note-target-string) {
+  opacity: 0.38;
+}
+
+.fretboard-container svg .string-visual.find-note-target-string {
+  filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.95))
+    drop-shadow(0 0 4px rgba(255, 236, 180, 0.75));
+}
+
+.fretboard-container svg .string-visual.find-note-target-string .string-shadow-line {
+  opacity: 0.72;
+  stroke-width: 4.2;
+}
+
+.fretboard-container svg .string-visual.find-note-target-string .string-wrap-line {
+  opacity: 1;
+  stroke-width: 4.4;
+}
+
+.fretboard-container svg .string-visual.find-note-target-string .string-main-line {
+  stroke-width: 3.6;
+  stroke: #fff8e8;
+}
+
+.fretboard-container svg .string-visual.find-note-target-string .string-shine-line {
+  opacity: 1;
+  stroke-width: 1.4;
+  stroke: #ffffff;
+}
+
+.fretboard-container svg .fret-cell {
+  cursor: pointer;
+}
+
+.fretboard-container svg .fret-tap-rainbow {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25));
+}
+
+.fretboard-container svg .fret-tap-label {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  pointer-events: none;
+  user-select: none;
+}
+
+.fretboard-container svg .fret-tap-selected {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.18));
+}
+
+.fretboard-container svg .fret-tap-hover {
+  fill: rgba(255, 255, 255, 0.42);
+  stroke: rgba(255, 255, 255, 0.55);
+  stroke-width: 1;
+}
+
+.note-chip-grid {
+  width: var(--note-chip-width, 72px);
+}
+
+.note-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  cursor: default;
+  pointer-events: none;
+}
+
+.selection-panel {
+  margin-top: 20px;
+  padding: 16px 18px;
+  background: #f8f8fa;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  justify-content: center;
+}
+
+.selection-panel[hidden] {
+  display: none;
+}
+
+.selection-content {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.selection-details {
+  list-style: none;
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.selection-details li {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 0.95rem;
+}
+
+.selection-details li::before {
+  content: '•';
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.selection-label {
+  color: var(--text-muted);
+  min-width: 88px;
+}
+
+.selection-value {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.staff-container {
+  flex: 0 0 auto;
+  padding: 8px 12px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.note-staff {
+  display: block;
+  width: 280px;
+  height: 140px;
+}
+
+.note-staff .staff-line {
+  stroke: #333;
+  stroke-width: 1.4;
+}
+
+.note-staff .staff-clef {
+  font-size: 58px;
+  fill: #222;
+  font-family: 'Segoe UI Symbol', 'Noto Music', serif;
+}
+
+.note-staff .staff-accidental {
+  font-size: 22px;
+  fill: #222;
+  text-anchor: middle;
+  dominant-baseline: middle;
+}
+
+.note-staff .staff-note {
+  fill: #111;
+}
+
+.note-palette-panel {
+  margin-top: 20px;
+  padding: 16px 14px;
+  background: #f8f8fa;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.note-palette-panel[hidden] {
+  display: none;
+}
+
+.show-all-notes-btn {
+  appearance: none;
+  display: block;
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 12px 16px;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s, color 0.2s;
+}
+
+.show-all-notes-btn:hover {
+  border-color: #c8c8d4;
+  background: var(--surface-hover);
+}
+
+.show-all-notes-btn.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-hover);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.find-note-panel {
+  margin-top: 20px;
+  padding: 16px 14px;
+  background: #f8f8fa;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  overflow: visible;
+}
+
+.find-note-panel[hidden] {
+  display: none;
+}
+
+.find-note-session-notice {
+  margin: 0 0 12px;
+  width: 100%;
+  text-align: center;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--text-muted, #6b6b78);
+}
+
+.find-note-calibration[hidden] {
+  display: none;
+}
+
+.find-note-game[hidden] {
+  display: none;
+}
+
+.find-note-game {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+
+.find-note-task-shell {
+  position: relative;
+  width: 100%;
+  overflow: visible;
+}
+
+.find-note-controls {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  z-index: 5;
+}
+
+.find-note-control-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+
+.find-note-toggles {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+
+.find-note-string-toggles {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 3px;
+  width: 124px;
+}
+
+.find-note-string-toggle {
+  appearance: none;
+  min-width: 0;
+  height: 18px;
+  padding: 0;
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--accent-hover);
+  font: inherit;
+  font-size: 0.58rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s, opacity 0.2s;
+}
+
+.find-note-string-toggle.active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-hover);
+}
+
+.find-note-string-toggle:not(.active) {
+  background: #e4e4ea;
+  color: var(--text-muted);
+}
+
+.find-note-string-toggle:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.find-note-string-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.find-note-segment {
+  --segment-height: 19px;
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  width: 124px;
+  height: var(--segment-height);
+  padding: 2px;
+  box-sizing: border-box;
+  border-radius: 8px;
+  background: #e4e4ea;
+  border: 1px solid var(--border);
+}
+
+.find-note-segment::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 2px;
+  width: calc(50% - 2px);
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  transition: transform 0.2s ease;
+  pointer-events: none;
+}
+
+.find-note-input-bar:has(.find-note-input[data-find-input='listen'].active)::before,
+.find-note-variant-bar:has(.find-note-variant[data-find-variant='all'].active)::before {
+  transform: translateX(calc(100% + 2px));
+}
+
+.find-note-segment-btn {
+  position: relative;
+  z-index: 1;
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 0 4px;
+  margin: 0;
+  font: inherit;
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: color 0.2s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.find-note-segment-btn.active {
+  color: var(--accent-hover);
+}
+
+.find-note-segment-btn:hover:not(.active) {
+  color: var(--text);
+}
+
+.find-note-segment-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.find-note-segment-btn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+.find-note-calibration {
+  position: relative;
+  width: 100%;
+  margin-bottom: 16px;
+  padding: 12px 14px 14px;
+  background: #f8f8fa;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.find-note-calibration-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 100%;
+}
+
+.find-note-calibration-title {
+  width: 100%;
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.find-note-calibration-steps {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.find-note-calibration-step {
+  padding: 5px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: #fff;
+  white-space: nowrap;
+}
+
+.find-note-calibration-step.active {
+  border-color: var(--accent);
+  color: var(--accent-hover);
+  background: var(--accent-soft);
+}
+
+.find-note-calibration-step.done {
+  border-color: #9fd0a5;
+  color: #1f6b2d;
+  background: #eefbf0;
+}
+
+.find-note-calibration-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.find-note-calibration-compare-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 32px;
+  width: 100%;
+}
+
+.find-note-calibration-compare {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.find-note-calibration-compare-label {
+  width: 100%;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-align: center;
+}
+
+.find-note-calibration-chip-grid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.find-note-calibration-chip-slot {
+  width: var(--note-chip-width, 72px);
+  flex: 0 0 auto;
+}
+
+.find-note-calibration-chip-slot .note-palette-btn {
+  min-height: var(--calibration-chip-height, 42px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.find-note-calibration-meta {
+  width: 100%;
+  max-width: var(--note-chip-width, 72px);
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  text-align: center;
+  line-height: 1.3;
+  min-height: 1.3em;
+}
+
+.find-note-calibration-waiting {
+  display: block;
+  width: 100%;
+  min-height: var(--calibration-chip-height, 42px);
+  height: var(--calibration-chip-height, 42px);
+  box-sizing: border-box;
+  background: #dddde3;
+  border-radius: 10px;
+  border: 2px solid #cbcbd3;
+}
+
+.find-note-calibration-actions {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.find-note-calibration-icon-btn {
+  appearance: none;
+  width: var(--calibration-chip-height, 42px);
+  height: var(--calibration-chip-height, 42px);
+  padding: 0;
+  border-radius: 10px;
+  border: 2px solid var(--border);
+  background: #fff;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.find-note-calibration-confirm-btn {
+  border-color: #9fd0a5;
+  background: #eefbf0;
+  color: #1f6b2d;
+}
+
+.find-note-calibration-confirm-btn:hover:not(:disabled) {
+  border-color: #7fbf87;
+  background: #e3f7e6;
+  box-shadow: 0 0 0 3px rgba(31, 107, 45, 0.12);
+}
+
+.find-note-calibration-confirm-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.find-note-calibration-retry-btn:hover {
+  border-color: #c8c8d4;
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.find-note-calibration-close {
+  position: absolute;
+  top: 12px;
+  left: 14px;
+  z-index: 2;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  border: 1px solid #e0443e;
+  border-radius: 50%;
+  background: #ff5f57;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.find-note-calibration-close-icon {
+  position: relative;
+  width: 8px;
+  height: 8px;
+  opacity: 0;
+  transform: scale(0.85);
+  transition: opacity 0.12s ease, transform 0.12s ease;
+}
+
+.find-note-calibration-close-icon::before,
+.find-note-calibration-close-icon::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8px;
+  height: 1.5px;
+  background: rgba(70, 18, 12, 0.82);
+  border-radius: 1px;
+}
+
+.find-note-calibration-close-icon::before {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.find-note-calibration-close-icon::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+.find-note-calibration-close:hover .find-note-calibration-close-icon {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.find-note-calibration-close:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+@media (max-width: 720px) {
+  .find-note-calibration-compare-row {
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+}
+
+.find-note-mic-status {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  text-align: center;
+  margin: 0;
+}
+
+.find-note-mic-status:empty {
+  display: none;
+}
+
+.find-note-progress:not([hidden]) {
+  margin-top: 8px;
+}
+
+.find-note-mic-status:not(:empty) {
+  margin-top: 8px;
+}
+
+.find-note-debug-log-btn {
+  flex: 0 0 auto;
+  min-width: var(--calibration-chip-height, 42px);
+  height: var(--calibration-chip-height, 42px);
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+  cursor: pointer;
+}
+
+.find-note-debug-log-btn[hidden] {
+  display: none;
+}
+
+.find-note-debug-log-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent-hover);
+}
+
+.find-note-debug-log-btn.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-hover);
+}
+
+.find-note-pause-btn {
+  position: relative;
+  z-index: 1;
+  flex: 0 0 auto;
+  width: var(--calibration-chip-height, 42px);
+  height: var(--calibration-chip-height, 42px);
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation;
+}
+
+.find-note-pause-btn .find-note-play-icon {
+  display: none;
+}
+
+.find-note-pause-btn.active .find-note-pause-icon {
+  display: none;
+}
+
+.find-note-pause-btn.active .find-note-play-icon {
+  display: block;
+}
+
+.find-note-pause-btn[hidden] {
+  display: none;
+}
+
+.find-note-pause-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent-hover);
+}
+
+.find-note-pause-btn.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-hover);
+}
+
+body.find-note-paused .fretboard-section > .fretboard-container {
+  opacity: 0.58;
+  pointer-events: none;
+}
+
+.find-note-debug-log-panel {
+  width: 100%;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.find-note-debug-log-panel[hidden] {
+  display: none;
+}
+
+.find-note-debug-log-empty {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  text-align: center;
+}
+
+.find-note-debug-log-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.find-note-debug-log-table th,
+.find-note-debug-log-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.find-note-debug-log-table th {
+  color: var(--text-muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.find-note-debug-log-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.find-note-recalibrate-btn {
+  appearance: none;
+  width: var(--calibration-chip-height, 42px);
+  height: var(--calibration-chip-height, 42px);
+  padding: 0;
+  margin: 0;
+  border: 2px solid #c8c8d4;
+  border-radius: 10px;
+  background: #fff;
+  color: #4a4a56;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  transition: border-color 0.2s, background 0.2s, color 0.2s, box-shadow 0.2s;
+}
+
+.find-note-recalibrate-btn[hidden] {
+  display: none;
+}
+
+.find-note-recalibrate-btn:hover {
+  color: var(--accent-hover);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.find-note-recalibrate-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.find-note-task {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.find-note-task-row {
+  position: relative;
+  width: 100%;
+  min-height: var(--calibration-chip-height, 42px);
+}
+
+.find-note-history {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  max-width: calc(50% - (var(--note-chip-width, 72px) / 2) - 16px);
+  overflow: hidden;
+}
+
+.find-note-history-item {
+  flex-shrink: 0;
+}
+
+.find-note-current {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+}
+
+.fretboard-container svg .fret-tap-result {
+  pointer-events: none;
+}
+
+.find-note-target {
+  display: block;
+  width: 100%;
+  pointer-events: none;
+}
+
+@media (max-width: 520px) {
+  .find-note-task-shell {
+    padding-bottom: 74px;
+  }
+
+  .find-note-controls {
+    top: auto;
+    bottom: 0;
+    transform: none;
+    justify-content: flex-end;
+    width: 100%;
+  }
+}
+
+.find-note-progress {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.find-note-progress[hidden] {
+  display: none;
+}
+
+.note-palette {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 6px;
+  width: 100%;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.note-palette-btn {
+  appearance: none;
+  border: 2px solid rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  padding: 10px 8px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s, filter 0.2s;
+  white-space: nowrap;
+}
+
+.note-palette-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.16);
+}
+
+.note-palette-btn.dimmed {
+  opacity: 0.3;
+  filter: saturate(0.5) brightness(0.95);
+}
+
+.note-palette-btn.active {
+  opacity: 1;
+  filter: none;
+}
+
+@media (max-width: 600px) {
+  .header h1 {
+    font-size: 1.4rem;
+  }
+
+  .selection-content {
+    flex-direction: column;
+  }
+
+  .note-palette-btn {
+    min-width: 64px;
+    font-size: 0.72rem;
+  }
+}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <h1>GuitarNotes <span id="app-version" class="app-version"></span></h1>
+    </header>
+
+    <div class="mode-bar" role="toolbar" aria-label="Режим работы">
+      <button
+        type="button"
+        class="mode-pill active"
+        data-mode="fret-note"
+        aria-pressed="true"
+      >
+        Что за нота?
+      </button>
+      <button
+        type="button"
+        class="mode-pill"
+        data-mode="note-frets"
+        aria-pressed="false"
+      >
+        Октавные точки
+      </button>
+      <button
+        type="button"
+        class="mode-pill"
+        data-mode="find-note"
+        aria-pressed="false"
+      >
+        Найди ноту
+      </button>
+    </div>
+
+    <section class="fretboard-section" aria-label="Гриф">
+      <div id="fretboard-container" class="fretboard-container"></div>
+
+      <div id="selection-panel" class="selection-panel" hidden>
+        <div class="selection-content">
+          <ul class="selection-details">
+            <li><span class="selection-label">Нота</span><span id="detail-note" class="selection-value"></span></li>
+            <li><span class="selection-label">Октава</span><span id="detail-octave" class="selection-value"></span></li>
+            <li><span class="selection-label">Струна, лад</span><span id="detail-position" class="selection-value"></span></li>
+          </ul>
+          <div id="staff-container" class="staff-container" aria-label="Позиция на нотном стане"></div>
+        </div>
+      </div>
+
+      <div id="note-palette-panel" class="note-palette-panel" hidden>
+        <button
+          type="button"
+          id="show-all-notes-btn"
+          class="show-all-notes-btn"
+          aria-pressed="false"
+        >
+          Показать все ноты
+        </button>
+        <div id="note-palette" class="note-palette" role="group" aria-label="Выбор ноты"></div>
+      </div>
+
+      <div id="find-note-panel" class="find-note-panel" hidden>
+        <p id="find-note-session-notice" class="find-note-session-notice"></p>
+        <div id="find-note-game" class="find-note-game">
+          <div class="find-note-task-shell">
+            <div id="find-note-target" class="find-note-target" aria-live="polite"></div>
+            <div class="find-note-controls">
+              <div class="find-note-control-stack">
+                <div class="find-note-toggles">
+                  <div class="find-note-segment find-note-input-bar" role="group" aria-label="Способ ответа">
+                    <button
+                      type="button"
+                      class="find-note-input find-note-segment-btn active"
+                      data-find-input="mouse"
+                      aria-pressed="true"
+                    >
+                      Мышкой
+                    </button>
+                    <button
+                      type="button"
+                      class="find-note-input find-note-segment-btn"
+                      data-find-input="listen"
+                      aria-pressed="false"
+                      title="Скоро"
+                    >
+                      Слушать
+                    </button>
+                  </div>
+                  <div class="find-note-segment find-note-variant-bar" role="group" aria-label="Тип задания">
+                    <button
+                      type="button"
+                      class="find-note-variant find-note-segment-btn active"
+                      data-find-variant="any"
+                      aria-pressed="true"
+                      title="Любую ноту"
+                    >
+                      Любую
+                    </button>
+                    <button
+                      type="button"
+                      class="find-note-variant find-note-segment-btn"
+                      data-find-variant="all"
+                      aria-pressed="false"
+                      title="Все ноты"
+                    >
+                      Все
+                    </button>
+                  </div>
+                </div>
+                <div class="find-note-string-toggles" role="group" aria-label="Активные струны">
+                  <button type="button" class="find-note-string-toggle active" data-string-index="5" aria-pressed="true" title="Струна 6 (E)">6</button>
+                  <button type="button" class="find-note-string-toggle active" data-string-index="4" aria-pressed="true" title="Струна 5 (A)">5</button>
+                  <button type="button" class="find-note-string-toggle active" data-string-index="3" aria-pressed="true" title="Струна 4 (D)">4</button>
+                  <button type="button" class="find-note-string-toggle active" data-string-index="2" aria-pressed="true" title="Струна 3 (G)">3</button>
+                  <button type="button" class="find-note-string-toggle active" data-string-index="1" aria-pressed="true" title="Струна 2 (B)">2</button>
+                  <button type="button" class="find-note-string-toggle active" data-string-index="0" aria-pressed="true" title="Струна 1 (E)">1</button>
+                </div>
+              </div>
+              <button
+                type="button"
+                id="find-note-pause-btn"
+                class="find-note-pause-btn"
+                aria-label="Пауза"
+                aria-pressed="false"
+                title="Пауза"
+              >
+                <svg class="find-note-pause-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+                  <path d="M5.5 3.5h2v9h-2zM8.5 3.5h2v9h-2z" fill="currentColor"/>
+                </svg>
+                <svg class="find-note-play-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+                  <path d="M4.5 3.5 11.5 8 4.5 12.5z" fill="currentColor"/>
+                </svg>
+              </button>
+              <button
+                type="button"
+                id="find-note-debug-log-btn"
+                class="find-note-debug-log-btn"
+                hidden
+                aria-label="Log"
+                title="История отгадываний"
+              >
+                log
+              </button>
+              <button
+                type="button"
+                id="find-note-stats-heatmap-btn"
+                class="find-note-debug-log-btn"
+                hidden
+                aria-label="Heatmap"
+                title="Heatmap статистики"
+              >
+                map
+              </button>
+              <button
+                type="button"
+                id="find-note-recalibrate-btn"
+                class="find-note-recalibrate-btn"
+                hidden
+                aria-label="Настроить микрофон"
+              ></button>
+            </div>
+          </div>
+          <div id="find-note-progress" class="find-note-progress" hidden aria-live="polite"></div>
+          <p id="find-note-mic-status" class="find-note-mic-status"></p>
+        </div>
+        <div id="find-note-debug-log-panel" class="find-note-debug-log-panel" hidden></div>
+      </div>
+
+      <div id="find-note-stats-panel" class="find-note-stats-panel" hidden>
+        <div class="find-note-stats-header">
+          <span class="find-note-stats-title">Статистика отгадывания</span>
+          <button type="button" id="find-note-stats-reset-btn" class="find-note-stats-reset-btn" hidden>
+            Сбросить
+          </button>
+        </div>
+        <div
+          id="find-note-stats-fretboard"
+          class="fretboard-container fretboard-stats-view"
+          aria-label="Статистика отгадывания нот"
+        ></div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+/* GuitarNotes v0.4.1 — single-file bundle (auto-generated, do not edit) */
+(function () {
+"use strict";
+
+// ----- js/config.js -----
+
+/**
+ * @module config
+ * @description Конфигурация гитары и глобальные константы приложения.
+ * @depends none
+ */
+
+const GUITAR = {
+  id: 'cremona-4755',
+  name: 'Cremona 4755',
+  variant: 'Classical 4/4',
+  type: 'classical',
+  strings: 6,
+  frets: 19,
+  scaleLength: 650,
+  scaleUnit: 'mm',
+  nutWidth: 52,
+  nutWidthUnit: 'mm',
+  fretRadius: null,
+  tuning: ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'],
+  stringLabels: ['E', 'A', 'D', 'G', 'B', 'E'],
+  theme: {
+    body: '#c4956a',
+    neck: '#5c3d2e',
+    fretboard: '#3d2314',
+    frets: '#a89078',
+    strings: {
+      wound: { core: '#9a8870', wrap: '#7a7060', width: 2.8 },
+      nylon: { color: '#fffef8', width: 1.9 },
+    },
+    nut: '#e8dcc8',
+    markers: '#f5ead6',
+    markerBg: '#2a1810',
+    inlay: '#f5ead6',
+    accent: '#8b6914',
+  },
+  description:
+    'Классическая гитара, массив кедра, накладка грифа из палисандра, 19 ладов, нейлоновые струны',
+};
+
+const MODES = {
+  FRET_NOTE: 'fret-note',
+  NOTE_FRETS: 'note-frets',
+  FIND_NOTE: 'find-note',
+};
+
+const FIND_INPUT = {
+  MOUSE: 'mouse',
+  LISTEN: 'listen',
+};
+
+const FIND_NOTE_FADE_WRONG_MS = 5000;
+const FIND_NOTE_FADE_CORRECT_MS = 5000;
+const FIND_NOTE_HISTORY_GAP_PX = 12;
+const FIND_NOTE_HISTORY_MIN_FADE_MS = 400;
+
+
+// ----- js/version.js -----
+
+const APP_VERSION = '0.4.1';
+
+
+// ----- js/ui-strings.js -----
+
+/**
+ * @module ui-strings
+ * @description Русские строки интерфейса.
+ * @depends none
+ */
+
+const UI = {
+  appTitle: 'GuitarNotes',
+  modeBarLabel: 'Режим работы',
+  modeFretNote: 'Что за нота?',
+  modeNoteFrets: 'Октавные точки',
+  modeFindNote: 'Найди ноту',
+  modeFindNoteSoon: 'Скоро',
+  fretboardLabel: 'Гриф гитары',
+  selectionNote: 'Нота',
+  selectionOctave: 'Октава',
+  selectionPosition: 'Струна, лад',
+  showAllNotes: 'Показать все ноты',
+  bootErrorTitle: 'Не удалось загрузить приложение',
+  findNoteSessionNotice: 'Статистика хранится только в этой вкладке',
+};
+
+
+// ----- js/note.js -----
+
+/**
+ * @module note
+ * @description Математика нот: парсинг, pitch class, частоты, цвета. Без DOM.
+ * @depends none
+ */
+
+const PITCH_CLASSES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
+const NOTE_NAMES_RU = {
+  C: 'До',
+  D: 'Ре',
+  E: 'Ми',
+  F: 'Фа',
+  G: 'Соль',
+  A: 'Ля',
+  B: 'Си',
+};
+
+const RUSSIAN_OCTAVE_NAMES = {
+  1: 'большая октава',
+  2: 'малая октава',
+  3: 'первая октава',
+  4: 'вторая октава',
+  5: 'третья октава',
+  6: 'четвёртая октава',
+};
+
+const RUSSIAN_OCTAVE_LABELS = {
+  1: 'Б',
+  2: 'М',
+  3: '1',
+  4: '2',
+  5: '3',
+  6: '4',
+};
+
+const NOTE_RAINBOW_COLORS = {
+  C: '#e53935',
+  'C#': '#f4511e',
+  D: '#fb8c00',
+  'D#': '#ffb300',
+  E: '#fdd835',
+  F: '#43a047',
+  'F#': '#00897b',
+  G: '#00acc1',
+  'G#': '#1e88e5',
+  A: '#3949ab',
+  'A#': '#8e24aa',
+  B: '#7b1fa2',
+};
+
+function parseNote(note) {
+  const match = note.match(/^([A-G]#?)(\d)$/);
+  if (!match) return null;
+  const pitch = match[1];
+  return {
+    pitch,
+    noteName: pitch.replace('#', ''),
+    accidental: pitch.includes('#') ? '♯' : '',
+    octave: parseInt(match[2], 10),
+    full: note,
+  };
+}
+
+function getNoteNameRu(noteName, accidental = '') {
+  const name = NOTE_NAMES_RU[noteName];
+  if (!name) return noteName;
+  return `${name}${accidental}`;
+}
+
+function getNoteDisplayLabel(parsed) {
+  const letter = parsed.pitch;
+  const russian = getNoteNameRu(parsed.noteName, parsed.accidental);
+  return `${letter} (${russian})`;
+}
+
+function getRussianOctaveName(scientificOctave) {
+  return RUSSIAN_OCTAVE_NAMES[scientificOctave] ?? String(scientificOctave);
+}
+
+function getRussianOctaveLabel(scientificOctave) {
+  return RUSSIAN_OCTAVE_LABELS[scientificOctave] ?? String(scientificOctave);
+}
+
+function getPitchClass(note) {
+  const match = note.match(/^([A-G]#?)/);
+  return match ? match[1] : note;
+}
+
+function getNoteRainbowColor(pitchClass) {
+  return NOTE_RAINBOW_COLORS[pitchClass] ?? '#ffffff';
+}
+
+function noteToFrequency(note) {
+  const parsed = parseNote(note);
+  if (!parsed) return null;
+
+  const semitonesFromA4 =
+    (parsed.octave - 4) * 12 + PITCH_CLASSES.indexOf(parsed.pitch) - 9;
+  return 440 * 2 ** (semitonesFromA4 / 12);
+}
+
+function getContrastTextColor(hex) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+  return luminance > 0.58 ? '#1a1a22' : '#ffffff';
+}
+
+
+// ----- js/fretboard.js -----
+
+/**
+ * @module fretboard
+ * @description Геометрия грифа и расчёт позиций нот. Без DOM.
+ * @depends note
+ */
+
+function getTuningIndex(guitar, visualStringIndex) {
+  return guitar.strings - 1 - visualStringIndex;
+}
+
+function getVisualStringLabel(guitar, visualStringIndex) {
+  return guitar.stringLabels[getTuningIndex(guitar, visualStringIndex)];
+}
+
+function getVisualStringNumber(guitar, visualStringIndex) {
+  return visualStringIndex + 1;
+}
+
+function getNoteAtFret(guitar, visualStringIndex, fret) {
+  const openNotes = guitar.tuning[getTuningIndex(guitar, visualStringIndex)];
+  const match = openNotes.match(/^([A-G]#?)(\d)$/);
+  if (!match) return '?';
+
+  const openIdx = PITCH_CLASSES.indexOf(match[1]);
+  const openOctave = parseInt(match[2], 10);
+  const absolute = (openOctave + 1) * 12 + openIdx + fret;
+  const newIdx = absolute % 12;
+  const newOctave = Math.floor(absolute / 12) - 1;
+  return `${PITCH_CLASSES[newIdx]}${newOctave}`;
+}
+
+function findPitchClassPositions(guitar, pitchClass, maxFret = guitar.frets) {
+  const positions = [];
+  const lastFret = Math.min(maxFret, guitar.frets);
+  for (let s = 0; s < guitar.strings; s++) {
+    for (let f = 0; f <= lastFret; f++) {
+      const note = getNoteAtFret(guitar, s, f);
+      if (getPitchClass(note) === pitchClass) {
+        positions.push({ string: s, fret: f, note });
+      }
+    }
+  }
+  return positions;
+}
+
+function findPitchClassPositionsOnString(
+  guitar,
+  visualStringIndex,
+  pitchClass,
+  maxFret = guitar.frets
+) {
+  const positions = [];
+  const lastFret = Math.min(maxFret, guitar.frets);
+  for (let f = 0; f <= lastFret; f++) {
+    const note = getNoteAtFret(guitar, visualStringIndex, f);
+    if (getPitchClass(note) === pitchClass) {
+      positions.push({ string: visualStringIndex, fret: f, note });
+    }
+  }
+  return positions;
+}
+
+function getPitchClassesOnString(guitar, visualStringIndex, maxFret = guitar.frets) {
+  const classes = new Set();
+  const lastFret = Math.min(maxFret, guitar.frets);
+  for (let f = 0; f <= lastFret; f++) {
+    classes.add(getPitchClass(getNoteAtFret(guitar, visualStringIndex, f)));
+  }
+  return [...classes];
+}
+
+function getOpenStringFrequency(guitar, visualStringIndex) {
+  const tuningIndex = getTuningIndex(guitar, visualStringIndex);
+  return noteToFrequency(guitar.tuning[tuningIndex]);
+}
+
+function formatPosition(guitar, string, fret) {
+  const stringNumber = getVisualStringNumber(guitar, string);
+  const stringLabel = getVisualStringLabel(guitar, string);
+  const fretLabel = fret === 0 ? 'открытый' : String(fret);
+  return `${stringNumber} (${stringLabel}), ${fretLabel}`;
+}
+
+/** Visual string indices from string 6 down to string 1. */
+const FIND_STRING_ORDER = [5, 4, 3, 2, 1, 0];
+
+
+// ----- js/staff.js -----
+
+/**
+ * @module staff
+ * @description Математика нотного стана. Без DOM.
+ * @depends none
+ */
+
+const DIATONIC = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+
+const LINE_SPACING = 12;
+const STAFF_TOP = 48;
+
+function stepUp(letter, octave) {
+  const index = DIATONIC.indexOf(letter);
+  if (index === DIATONIC.length - 1) {
+    return { letter: 'C', octave: octave + 1 };
+  }
+  return { letter: DIATONIC[index + 1], octave };
+}
+
+function stepDown(letter, octave) {
+  const index = DIATONIC.indexOf(letter);
+  if (index === 0) {
+    return { letter: 'B', octave: octave - 1 };
+  }
+  return { letter: DIATONIC[index - 1], octave };
+}
+
+function stepsFromB4(letter, octave) {
+  let curLetter = 'B';
+  let curOctave = 4;
+  let steps = 0;
+
+  while (curLetter !== letter || curOctave !== octave) {
+    const curIndex = curOctave * 7 + DIATONIC.indexOf(curLetter);
+    const targetIndex = octave * 7 + DIATONIC.indexOf(letter);
+
+    if (curIndex < targetIndex) {
+      ({ letter: curLetter, octave: curOctave } = stepUp(curLetter, curOctave));
+      steps++;
+    } else {
+      ({ letter: curLetter, octave: curOctave } = stepDown(curLetter, curOctave));
+      steps--;
+    }
+  }
+
+  return steps;
+}
+
+function getStaffNoteY(pitchName) {
+  const match = pitchName.match(/^([A-G])(#?)(\d)$/);
+  if (!match) return null;
+
+  const [, letter, , octaveStr] = match;
+  const soundingOctave = parseInt(octaveStr, 10);
+  const staffOctave = soundingOctave + 1;
+  const middleLineY = STAFF_TOP + LINE_SPACING * 2;
+  const steps = stepsFromB4(letter, staffOctave);
+  return middleLineY - steps * (LINE_SPACING / 2);
+}
+
+function pitchHasSharp(pitchName) {
+  return /^[A-G]#\d$/.test(pitchName);
+}
+
+
+// ----- js/stats-schema.js -----
+
+/**
+ * @module stats-schema
+ * @description Схема JSON-файла данных приложения.
+ * @depends none
+ */
+
+const APP_DATA_SCHEMA_VERSION = 1;
+
+function emptyAppData() {
+  return {
+    version: APP_DATA_SCHEMA_VERSION,
+    stats: { records: [] },
+    calibration: { ratios: null, completedAt: null },
+  };
+}
+
+function normalizeAppData(raw) {
+  if (!raw || typeof raw !== 'object') {
+    return emptyAppData();
+  }
+
+  const version = raw.version ?? APP_DATA_SCHEMA_VERSION;
+  const stats = raw.stats && typeof raw.stats === 'object' ? raw.stats : { records: [] };
+  const records = Array.isArray(stats.records) ? stats.records : [];
+  const calibration =
+    raw.calibration && typeof raw.calibration === 'object'
+      ? raw.calibration
+      : { ratios: null, completedAt: null };
+
+  return {
+    version,
+    stats: { records },
+    calibration: {
+      ratios: Array.isArray(calibration.ratios) ? calibration.ratios : null,
+      completedAt: calibration.completedAt ?? null,
+    },
+  };
+}
+
+
+// ----- js/persistence.js -----
+
+/**
+ * @module persistence
+ * @description In-memory хранилище данных сессии (без записи на диск).
+ * @depends stats-schema
+ */
+
+let memorySnapshot = null;
+
+async function loadAppData() {
+  return memorySnapshot ?? emptyAppData();
+}
+
+async function saveAppData(payload) {
+  const normalized = normalizeAppData(payload);
+  normalized.version = APP_DATA_SCHEMA_VERSION;
+  memorySnapshot = normalized;
+  return { saved: true, storage: 'memory' };
+}
+
+function clearPersistenceForTest() {
+  memorySnapshot = null;
+}
+
+
+// ----- js/find-note-difficulty.js -----
+
+/**
+ * @module find-note-difficulty
+ * @description Индекс сложности позиций для heatmap и взвешивания.
+ * @depends none
+ */
+
+const DEFAULT_RECENT_WINDOW = 10;
+const NEW_ELEMENT_DIFFICULTY_INDEX = 40;
+const DATA_SPARSITY_BONUS = 30;
+const HEATMAP_BRIGHTEST_DIFFICULTY_INDEX = 1;
+const HEATMAP_FADED_DIFFICULTY_INDEX = NEW_ELEMENT_DIFFICULTY_INDEX;
+
+function average(values) {
+  if (values.length === 0) return 0;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function positionStatsKey(string, fret) {
+  return `${string}:${fret}`;
+}
+
+function difficultyIndexToHeatmapStrength(
+  difficultyIndex,
+  {
+    brightest = HEATMAP_BRIGHTEST_DIFFICULTY_INDEX,
+    faded = HEATMAP_FADED_DIFFICULTY_INDEX,
+  } = {}
+) {
+  if (faded <= brightest) return 1;
+
+  const clamped = Math.max(brightest, Math.min(faded, difficultyIndex));
+  return (faded - clamped) / (faded - brightest);
+}
+
+function calculateDifficultyIndex(
+  attempts,
+  { recentWindow = DEFAULT_RECENT_WINDOW } = {}
+) {
+  const totalAttempts = attempts?.length ?? 0;
+  if (totalAttempts === 0) {
+    return {
+      difficultyIndex: NEW_ELEMENT_DIFFICULTY_INDEX,
+      totalAttempts: 0,
+      avgErrors: 0,
+      avgTime: 0,
+      recentAttempts: 0,
+    };
+  }
+
+  const recent = attempts.slice(-recentWindow);
+  const avgErrors = average(recent.map((attempt) => attempt.errors ?? 0));
+  const avgTime = average(recent.map((attempt) => attempt.durationSeconds ?? 0));
+  const difficultyIndex =
+    avgErrors * 10 + avgTime * 1.5 + DATA_SPARSITY_BONUS / totalAttempts;
+
+  return {
+    difficultyIndex,
+    totalAttempts,
+    avgErrors,
+    avgTime,
+    recentAttempts: recent.length,
+  };
+}
+
+function collectRecordPositions(record) {
+  const positions = [];
+  for (const target of record?.targets ?? []) {
+    for (const position of target?.positions ?? []) {
+      if (typeof position?.string !== 'number' || typeof position?.fret !== 'number') continue;
+      positions.push(position);
+    }
+  }
+  return positions;
+}
+
+function buildPositionAttemptHistories(records) {
+  const map = new Map();
+
+  for (const record of records ?? []) {
+    const positions = collectRecordPositions(record);
+    if (positions.length === 0) continue;
+
+    const share = 1 / positions.length;
+    const durationSeconds = ((record.durationMs ?? 0) / 1000) * share;
+    const errors = (record.errors ?? 0) * share;
+    const finishedAt = record.finishedAt ?? record.startedAt ?? '';
+
+    for (const position of positions) {
+      const key = positionStatsKey(position.string, position.fret);
+      const attempts = map.get(key) ?? [];
+      attempts.push({ errors, durationSeconds, finishedAt });
+      map.set(key, attempts);
+    }
+  }
+
+  for (const [key, attempts] of map) {
+    attempts.sort((a, b) => String(a.finishedAt).localeCompare(String(b.finishedAt)));
+    map.set(key, attempts);
+  }
+
+  return map;
+}
+
+function scorePositionsByDifficultyIndex(records, { recentWindow = DEFAULT_RECENT_WINDOW } = {}) {
+  const histories = buildPositionAttemptHistories(records);
+  const scored = new Map();
+
+  for (const [key, attempts] of histories) {
+    const metrics = calculateDifficultyIndex(attempts, { recentWindow });
+    const heatmapStrength = difficultyIndexToHeatmapStrength(metrics.difficultyIndex);
+    scored.set(key, {
+      attempts: metrics.totalAttempts,
+      durationMs: average(attempts.map((attempt) => attempt.durationSeconds * 1000)) * attempts.length,
+      errors: attempts.reduce((sum, attempt) => sum + (attempt.errors ?? 0), 0),
+      ...metrics,
+      heatmapStrength,
+      normalized: heatmapStrength,
+    });
+  }
+
+  return scored;
+}
+
+function sortByDifficultyIndex(scoredMap, { descending = true } = {}) {
+  const items = [...scoredMap.entries()].map(([key, data]) => {
+    const [string, fret] = key.split(':').map(Number);
+    return { key, string, fret, ...data };
+  });
+
+  items.sort((left, right) =>
+    descending
+      ? right.difficultyIndex - left.difficultyIndex
+      : left.difficultyIndex - right.difficultyIndex
+  );
+
+  return items;
+}
+
+
+// ----- js/find-note-weighting.js -----
+
+/**
+ * @module find-note-weighting
+ * @description Взвешенный выбор струн и pitch class по статистике.
+ * @depends config, fretboard, find-note-difficulty
+ */
+
+function positionIsUnplayed(string, fret, scores) {
+  const key = `${string}:${fret}`;
+  const entry = scores?.get(key);
+  return !entry || entry.totalAttempts === 0;
+}
+
+function positionPickWeight(string, fret, scores) {
+  if (positionIsUnplayed(string, fret, scores)) {
+    return NEW_ELEMENT_DIFFICULTY_INDEX;
+  }
+
+  const key = `${string}:${fret}`;
+  return scores.get(key).difficultyIndex;
+}
+
+function pitchClassDifficultyOnString(stringIndex, pitchClass, scores, maxFret) {
+  const positions = findPitchClassPositionsOnString(GUITAR, stringIndex, pitchClass, maxFret);
+  if (positions.length === 0) return 0;
+
+  let maxWeight = 0;
+  for (const position of positions) {
+    maxWeight = Math.max(
+      maxWeight,
+      positionPickWeight(position.string, position.fret, scores)
+    );
+  }
+  return maxWeight;
+}
+
+function pitchClassDifficultyOnFretboard(
+  pitchClass,
+  scores,
+  maxFret,
+  enabledStrings
+) {
+  const positions = findPitchClassPositions(GUITAR, pitchClass, maxFret).filter((position) =>
+    enabledStrings.has(position.string)
+  );
+  if (positions.length === 0) return 0;
+
+  let maxWeight = 0;
+  for (const position of positions) {
+    maxWeight = Math.max(
+      maxWeight,
+      positionPickWeight(position.string, position.fret, scores)
+    );
+  }
+  return maxWeight;
+}
+
+const pitchClassWeaknessOnString = pitchClassDifficultyOnString;
+const pitchClassWeaknessOnFretboard = pitchClassDifficultyOnFretboard;
+
+function pitchClassHasUnplayedPosition(positions, scores) {
+  return positions.some((position) => positionIsUnplayed(position.string, position.fret, scores));
+}
+
+function filterPitchClassesWithUnplayedPositions(available, scores, getPositions) {
+  if (!scores?.size) return available;
+
+  const withUnplayed = available.filter((pitchClass) =>
+    pitchClassHasUnplayedPosition(getPositions(pitchClass), scores)
+  );
+  return withUnplayed.length > 0 ? withUnplayed : available;
+}
+
+function stringHasUnplayedPosition(stringIndex, scores, maxFret) {
+  for (let fret = 0; fret <= maxFret; fret++) {
+    if (positionIsUnplayed(stringIndex, fret, scores)) return true;
+  }
+  return false;
+}
+
+function stringPickWeight(stringIndex, scores, maxFret) {
+  let maxWeight = 0;
+  for (let fret = 0; fret <= maxFret; fret++) {
+    maxWeight = Math.max(maxWeight, positionPickWeight(stringIndex, fret, scores));
+  }
+  return maxWeight;
+}
+
+function positionTaskKey(string, pitchClass) {
+  return `${string}:${pitchClass}`;
+}
+
+function filterPositionsWithUnplayed(positions, scores) {
+  if (!scores?.size) return positions;
+
+  const withUnplayed = positions.filter((position) =>
+    positionIsUnplayed(position.string, position.fret, scores)
+  );
+  return withUnplayed.length > 0 ? withUnplayed : positions;
+}
+
+function pickStatsWeightedPosition(positions, scores, previousTaskKey = null) {
+  if (positions.length === 0) return null;
+  if (positions.length === 1) return positions[0];
+
+  let pool = filterPositionsWithUnplayed(positions, scores);
+  if (previousTaskKey) {
+    const withoutPrevious = pool.filter(
+      (position) =>
+        positionTaskKey(position.string, getPitchClass(position.note)) !== previousTaskKey
+    );
+    if (withoutPrevious.length > 0) {
+      pool = withoutPrevious;
+    }
+  }
+
+  return pickWeightedItem(
+    pool,
+    (position) => positionPickWeight(position.string, position.fret, scores),
+    null
+  );
+}
+
+function pickStatsWeightedString(
+  enabledStrings,
+  scores,
+  maxFret,
+  previousStringIndex = null
+) {
+  if (enabledStrings.length === 0) return null;
+  if (enabledStrings.length === 1) return enabledStrings[0];
+
+  const withUnplayed = enabledStrings.filter((stringIndex) =>
+    stringHasUnplayedPosition(stringIndex, scores, maxFret)
+  );
+  const pool = withUnplayed.length > 0 ? withUnplayed : enabledStrings;
+
+  return pickWeightedItem(
+    pool,
+    (stringIndex) => stringPickWeight(stringIndex, scores, maxFret),
+    previousStringIndex
+  );
+}
+
+function pickStatsWeightedPitchClass(available, previous, getWeight, filterPool = null) {
+  const pool = filterPool ? filterPool(available) : available;
+  return pickWeightedItem(pool, getWeight, previous);
+}
+
+function pickWeightedItem(items, getWeight, previous = null) {
+  if (items.length === 0) return null;
+  if (items.length === 1) return items[0];
+
+  let candidates = items;
+  if (previous !== null && items.includes(previous)) {
+    const withoutPrevious = items.filter((item) => item !== previous);
+    if (withoutPrevious.length > 0) {
+      candidates = withoutPrevious;
+    }
+  }
+
+  const weights = candidates.map(getWeight);
+  const maxWeight = Math.max(...weights);
+  const best = candidates.filter((_, index) => weights[index] === maxWeight);
+
+  if (best.length === 1) {
+    return best[0];
+  }
+
+  return best[Math.floor(Math.random() * best.length)];
+}
+
+
+// ----- js/find-note-state.js -----
+
+/**
+ * @module find-note-state
+ * @description Состояние и строки режима «Найди ноту».
+ * @depends config
+ */
+
+const FIND_VARIANTS = {
+  ANY: 'any',
+  ALL: 'all',
+};
+
+function getMaxFretForFindNote() {
+  return GUITAR.frets;
+}
+
+function createDefaultEnabledStrings() {
+  return new Set(Array.from({ length: GUITAR.strings }, (_, index) => index));
+}
+
+function createFindNoteState() {
+  return {
+    variant: FIND_VARIANTS.ANY,
+    targetPitchClass: null,
+    targetStringIndex: null,
+    requireTargetString: false,
+    completed: false,
+    foundPositions: new Set(),
+    wrongPositions: new Set(),
+    history: [],
+    enabledStrings: createDefaultEnabledStrings(),
+    positionScores: null,
+    useStatsWeightedPicking: false,
+  };
+}
+
+function getEnabledStringIndices(state) {
+  return [...state.enabledStrings]
+    .filter((index) => index >= 0 && index < GUITAR.strings)
+    .sort((a, b) => b - a);
+}
+
+function isStringEnabled(state, stringIndex) {
+  return state.enabledStrings.has(stringIndex);
+}
+
+function toggleStringEnabled(state, stringIndex) {
+  if (state.enabledStrings.has(stringIndex)) {
+    if (state.enabledStrings.size <= 1) return false;
+    state.enabledStrings.delete(stringIndex);
+    return true;
+  }
+
+  state.enabledStrings.add(stringIndex);
+  return true;
+}
+
+function positionKey(string, fret) {
+  return `${string}-${fret}`;
+}
+
+function currentTargetString(state) {
+  return state.targetStringIndex;
+}
+
+function clearRoundState(state) {
+  state.completed = false;
+  state.targetStringIndex = null;
+  state.foundPositions.clear();
+  state.wrongPositions.clear();
+}
+
+
+// ----- js/find-note-history.js -----
+
+/**
+ * @module find-note-history
+ * @description История отгаданных нот и fade-логика.
+ * @depends config
+ */
+
+let historyIdSeq = 0;
+
+function resetFindNoteHistory(state) {
+  state.history = [];
+}
+
+function pushFindNoteHistory(state, pitchClass, fadeMs) {
+  if (!pitchClass || !fadeMs) return;
+  state.history.push({
+    id: ++historyIdSeq,
+    pitchClass,
+    fadeMs,
+    startTime: performance.now(),
+  });
+}
+
+function computeHistoryCapacity(contentWidth, chipWidth, gap = FIND_NOTE_HISTORY_GAP_PX) {
+  const maxWidth = contentWidth * 0.5 - chipWidth / 2 - 16;
+  if (maxWidth <= 0) return 1;
+  return Math.max(1, Math.floor((maxWidth + gap) / (chipWidth + gap)));
+}
+
+function getEffectiveHistoryFadeMs(item, { index, total, capacity }) {
+  if (index < total - capacity) return 0;
+
+  const overflow = Math.max(0, total - capacity);
+  if (overflow === 0) return item.fadeMs;
+
+  return Math.max(
+    FIND_NOTE_HISTORY_MIN_FADE_MS,
+    Math.round(item.fadeMs * (capacity / total))
+  );
+}
+
+function pruneExpiredHistory(state, now = performance.now(), capacity = Infinity) {
+  const total = state.history.length;
+  state.history = state.history.filter((item, index) => {
+    if (index < total - capacity) return false;
+    const fadeMs = getEffectiveHistoryFadeMs(item, { index, total, capacity });
+    return now - item.startTime < fadeMs;
+  });
+}
+
+function getHistoryItemOpacity(
+  item,
+  now = performance.now(),
+  { index = 0, total = 1, capacity = Infinity } = {}
+) {
+  if (index < total - capacity) return 0;
+
+  const fadeMs = getEffectiveHistoryFadeMs(item, { index, total, capacity });
+  const elapsed = now - item.startTime;
+  if (elapsed >= fadeMs) return 0;
+  return 1 - elapsed / fadeMs;
+}
+
+function hasActiveHistoryFade(state, now = performance.now(), capacity = Infinity) {
+  const total = state.history.length;
+  return state.history.some(
+    (item, index) => getHistoryItemOpacity(item, now, { index, total, capacity }) > 0
+  );
+}
+
+
+// ----- js/find-note-evaluate.js -----
+
+/**
+ * @module find-note-evaluate
+ * @description Оценка попыток и прогресс задания.
+ * @depends config, note, fretboard, find-note-state
+ */
+
+function filterPositionsByEnabledStrings(state, positions) {
+  return positions.filter((position) => state.enabledStrings.has(position.string));
+}
+
+function targetsForCurrentTask(state) {
+  const maxFret = getMaxFretForFindNote();
+
+  if (state.requireTargetString) {
+    const stringIndex = currentTargetString(state);
+    if (stringIndex === null || !isStringEnabled(state, stringIndex)) return [];
+    return findPitchClassPositionsOnString(
+      GUITAR,
+      stringIndex,
+      state.targetPitchClass,
+      maxFret
+    );
+  }
+
+  return filterPositionsByEnabledStrings(
+    state,
+    findPitchClassPositions(GUITAR, state.targetPitchClass, maxFret)
+  );
+}
+
+function getListenCandidateFrets(state, stringIndex) {
+  if (stringIndex === null || !state.targetPitchClass) return [];
+
+  const targets = targetsForCurrentTask(state).filter(
+    (position) => position.string === stringIndex
+  );
+  if (targets.length === 0) return [];
+
+  const unfound = targets.filter(
+    (position) => !state.foundPositions.has(positionKey(position.string, position.fret))
+  );
+  const pool = unfound.length > 0 ? unfound : targets;
+  return pool.map((position) => position.fret);
+}
+
+function getListenReferenceHz(state, stringIndex) {
+  if (stringIndex === null || !state.targetPitchClass) return null;
+
+  const targets = targetsForCurrentTask(state).filter(
+    (position) =>
+      position.string === stringIndex &&
+      !state.foundPositions.has(positionKey(position.string, position.fret))
+  );
+  if (targets.length === 0) return null;
+
+  const frequencies = targets
+    .map((position) => noteToFrequency(position.note))
+    .filter(Boolean);
+  if (frequencies.length === 0) return null;
+  if (frequencies.length === 1) return frequencies[0];
+
+  const minFrequency = Math.min(...frequencies);
+  const maxFrequency = Math.max(...frequencies);
+  const octaveSpreadCents = Math.abs(1200 * Math.log2(maxFrequency / minFrequency));
+  if (octaveSpreadCents > 200) return null;
+
+  return frequencies.reduce((sum, frequency) => sum + frequency, 0) / frequencies.length;
+}
+
+function remainingOnCurrentTask(state) {
+  const targets = targetsForCurrentTask(state);
+  const found = targets.filter((p) =>
+    state.foundPositions.has(positionKey(p.string, p.fret))
+  ).length;
+  return targets.length - found;
+}
+
+function usesMultiPositionTask(state) {
+  return (
+    state.variant === FIND_VARIANTS.ALL ||
+    (state.variant === FIND_VARIANTS.ANY && state.requireTargetString)
+  );
+}
+
+function advanceListenTask(state) {
+  state.foundPositions.clear();
+  state.wrongPositions.clear();
+  return { done: true, roundComplete: false, needsNextTarget: true };
+}
+
+function completeFreeformRound(state) {
+  state.completed = true;
+  return { done: true, roundComplete: true };
+}
+
+function evaluateAttempt(state, { string, fret, note }) {
+  if (state.completed) {
+    return { kind: 'ignored' };
+  }
+
+  if (fret > getMaxFretForFindNote()) {
+    return { kind: 'ignored' };
+  }
+
+  if (!isStringEnabled(state, string)) {
+    return { kind: 'ignored' };
+  }
+
+  if (state.requireTargetString && string !== currentTargetString(state)) {
+    return { kind: 'wrong-string', string, fret, note };
+  }
+
+  const isCorrect = getPitchClass(note) === state.targetPitchClass;
+
+  if (usesMultiPositionTask(state)) {
+    const key = positionKey(string, fret);
+    if (state.foundPositions.has(key)) {
+      return { kind: 'ignored' };
+    }
+
+    if (isCorrect) {
+      state.foundPositions.add(key);
+      state.wrongPositions.delete(key);
+      if (remainingOnCurrentTask(state) === 0) {
+        const completedPitchClass = state.targetPitchClass;
+        if (state.requireTargetString) {
+          const result = advanceListenTask(state);
+          return {
+            kind: 'string-complete',
+            ...result,
+            string,
+            fret,
+            isCorrect: true,
+            completedPitchClass,
+          };
+        }
+        const result = completeFreeformRound(state);
+        return {
+          kind: 'string-complete',
+          ...result,
+          string,
+          fret,
+          isCorrect: true,
+          completedPitchClass,
+        };
+      }
+      return { kind: 'correct', string, fret, isCorrect: true };
+    }
+
+    state.wrongPositions.add(key);
+    return { kind: 'wrong', string, fret, isCorrect: false };
+  }
+
+  if (isCorrect) {
+    const completedPitchClass = state.targetPitchClass;
+    if (state.requireTargetString) {
+      const result = advanceListenTask(state);
+      return {
+        kind: 'string-complete',
+        ...result,
+        string,
+        fret,
+        isCorrect: true,
+        completedPitchClass,
+      };
+    }
+    const result = completeFreeformRound(state);
+    return {
+      kind: 'string-complete',
+      ...result,
+      string,
+      fret,
+      isCorrect: true,
+      completedPitchClass,
+    };
+  }
+
+  return { kind: 'wrong', string, fret, isCorrect: false };
+}
+
+function buildProgressText(state) {
+  if (state.completed) return '';
+  if (!usesMultiPositionTask(state)) return '';
+
+  const remaining = remainingOnCurrentTask(state);
+  const stringHint =
+    state.requireTargetString && state.targetStringIndex !== null
+      ? `Струна ${state.targetStringIndex + 1} · `
+      : '';
+
+  if (remaining === 0) {
+    return state.requireTargetString ? 'Готово на этой струне!' : 'Готово!';
+  }
+  return state.requireTargetString
+    ? `${stringHint}Осталось на струне: ${remaining}`
+    : `Осталось на грифе: ${remaining}`;
+}
+
+
+// ----- js/find-note-picking.js -----
+
+/**
+ * @module find-note-picking
+ * @description Выбор целевой ноты и струны.
+ * @depends config, fretboard, find-note-state, find-note-weighting
+ */
+
+function getAllPitchClassesOnGuitar(state) {
+  const classes = new Set();
+  const maxFret = getMaxFretForFindNote();
+  for (const stringIndex of getEnabledStringIndices(state)) {
+    for (const pitchClass of getPitchClassesOnString(GUITAR, stringIndex, maxFret)) {
+      classes.add(pitchClass);
+    }
+  }
+  return [...classes];
+}
+
+function pickRandomItem(items, previous = null) {
+  if (items.length === 0) return null;
+
+  let next = previous;
+  let guard = 0;
+  while (items.length > 1 && next === previous && guard < 20) {
+    next = items[Math.floor(Math.random() * items.length)];
+    guard++;
+  }
+  if (!items.includes(next)) {
+    next = items[Math.floor(Math.random() * items.length)];
+  }
+
+  return next;
+}
+
+function filterPositionsByEnabledStrings(state, positions) {
+  return positions.filter((position) => state.enabledStrings.has(position.string));
+}
+
+function pickRandomPitchClass(available, previous) {
+  return pickRandomItem(available, previous);
+}
+
+function pickStatsWeightedPitchClassForState(state, available, previous, getWeight, getPositions) {
+  return pickStatsWeightedPitchClass(available, previous, getWeight, (pool) =>
+    filterPitchClassesWithUnplayedPositions(pool, state.positionScores, getPositions)
+  );
+}
+
+function getAllEnabledPositions(state, maxFret) {
+  const positions = [];
+  for (const stringIndex of getEnabledStringIndices(state)) {
+    for (let fret = 0; fret <= maxFret; fret += 1) {
+      positions.push({
+        string: stringIndex,
+        fret,
+        note: getNoteAtFret(GUITAR, stringIndex, fret),
+      });
+    }
+  }
+  return positions;
+}
+
+function currentTaskKey(state) {
+  if (state.targetStringIndex === null || !state.targetPitchClass) return null;
+  return positionTaskKey(state.targetStringIndex, state.targetPitchClass);
+}
+
+function pickRandomPosition(positions, previousTaskKey) {
+  let pool = positions;
+  if (previousTaskKey) {
+    const withoutPrevious = pool.filter(
+      (position) =>
+        positionTaskKey(position.string, getPitchClass(position.note)) !== previousTaskKey
+    );
+    if (withoutPrevious.length > 0) {
+      pool = withoutPrevious;
+    }
+  }
+  return pickRandomItem(pool, null);
+}
+
+function pickTargetForCurrentString(state) {
+  const maxFret = getMaxFretForFindNote();
+  const positions = getAllEnabledPositions(state, maxFret);
+  if (positions.length === 0) return null;
+
+  const previousTaskKey = currentTaskKey(state);
+  const picked =
+    state.useStatsWeightedPicking && state.positionScores?.size
+      ? pickStatsWeightedPosition(positions, state.positionScores, previousTaskKey)
+      : pickRandomPosition(positions, previousTaskKey);
+  if (!picked) return null;
+
+  state.targetStringIndex = picked.string;
+  state.targetPitchClass = getPitchClass(picked.note);
+  return state.targetPitchClass;
+}
+
+function pickTargetForFretboard(state) {
+  const available = getAllPitchClassesOnGuitar(state);
+  if (available.length === 0) return null;
+
+  const maxFret = getMaxFretForFindNote();
+  const next = state.useStatsWeightedPicking
+    ? pickStatsWeightedPitchClassForState(
+        state,
+        available,
+        state.targetPitchClass,
+        (pitchClass) =>
+          pitchClassWeaknessOnFretboard(
+            pitchClass,
+            state.positionScores,
+            maxFret,
+            state.enabledStrings
+          ),
+        (pitchClass) =>
+          filterPositionsByEnabledStrings(
+            state,
+            findPitchClassPositions(GUITAR, pitchClass, maxFret)
+          )
+      )
+    : pickRandomPitchClass(available, state.targetPitchClass);
+  if (!next) return null;
+
+  state.targetPitchClass = next;
+  return next;
+}
+
+function pickTarget(state) {
+  if (state.requireTargetString) {
+    return pickTargetForCurrentString(state);
+  }
+  return pickTargetForFretboard(state);
+}
+
+function startRound(state) {
+  clearRoundState(state);
+  pickTarget(state);
+}
+
+
+// ----- js/find-note.js -----
+
+/**
+ * @module find-note
+ * @description Публичный API домена «Найди ноту» (barrel).
+ * @depends find-note-state, find-note-picking, find-note-history, find-note-evaluate
+ */
+
+
+// ----- js/find-note-stats.js -----
+
+/**
+ * @module find-note-stats
+ * @description Сбор и агрегация статистики «Найди ноту» (in-memory, на время сессии).
+ * @depends config, fretboard, find-note, find-note-difficulty, persistence
+ */
+
+function shouldCollectFindNoteStats(inputMode, variant) {
+  return variant === 'any' || (inputMode === 'mouse' && variant === 'all');
+}
+
+function matchesFindNoteStatsMode(record, inputMode, variant) {
+  return record?.inputMode === inputMode && record?.variant === variant;
+}
+
+function collectRecordPositions(record) {
+  const positions = [];
+  for (const target of record?.targets ?? []) {
+    for (const position of target?.positions ?? []) {
+      if (typeof position?.string !== 'number' || typeof position?.fret !== 'number') continue;
+      positions.push(position);
+    }
+  }
+  return positions;
+}
+
+function aggregateFindNoteStatsByPosition(records, { inputMode, variant } = {}) {
+  const filtered = filterRecordsForMode(records, { inputMode, variant });
+  const histories = buildPositionAttemptHistories(filtered);
+  const map = new Map();
+
+  for (const [key, attempts] of histories) {
+    const durationMs = attempts.reduce(
+      (sum, attempt) => sum + (attempt.durationSeconds ?? 0) * 1000,
+      0
+    );
+    const errors = attempts.reduce((sum, attempt) => sum + (attempt.errors ?? 0), 0);
+    map.set(key, {
+      attempts: attempts.length,
+      durationMs,
+      errors,
+    });
+  }
+
+  return map;
+}
+
+function filterRecordsForMode(records, { inputMode, variant } = {}) {
+  const filterByMode = Boolean(inputMode && variant);
+  return (records ?? []).filter((record) => {
+    if (!shouldCollectFindNoteStats(record.inputMode, record.variant)) return false;
+    if (filterByMode && !matchesFindNoteStatsMode(record, inputMode, variant)) return false;
+    return collectRecordPositions(record).length > 0;
+  });
+}
+
+function scoreFindNoteStatsPositions(records, { inputMode, variant, recentWindow } = {}) {
+  const filtered = filterRecordsForMode(records, { inputMode, variant });
+  return scorePositionsByDifficultyIndex(filtered, { recentWindow });
+}
+
+async function buildFindNoteStatsContext({ inputMode, variant } = {}) {
+  const records = await fetchFindNoteStatsRecords();
+  return {
+    positionScores: scoreFindNoteStatsPositions(records, { inputMode, variant }),
+  };
+}
+
+async function buildFindNoteStatsHeatmap({ inputMode, variant } = {}) {
+  const context = await buildFindNoteStatsContext({ inputMode, variant });
+  return context.positionScores;
+}
+
+let activeTask = null;
+let recordSeq = 0;
+let statsPauseStartedAt = null;
+
+function pauseFindNoteStatsTask() {
+  if (!activeTask || statsPauseStartedAt !== null) return;
+  statsPauseStartedAt = Date.now();
+}
+
+function resumeFindNoteStatsTask() {
+  if (!activeTask || statsPauseStartedAt === null) return;
+  activeTask.startedAt += Date.now() - statsPauseStartedAt;
+  statsPauseStartedAt = null;
+}
+
+function isFindNoteStatsTaskPaused() {
+  return statsPauseStartedAt !== null;
+}
+
+function mapPosition(position) {
+  return {
+    string: position.string,
+    stringNumber: getVisualStringNumber(GUITAR, position.string),
+    fret: position.fret,
+    note: position.note,
+  };
+}
+
+function remainingTargetPositions(state) {
+  return targetsForCurrentTask(state).filter(
+    (position) => !state.foundPositions?.has(positionKey(position.string, position.fret))
+  );
+}
+
+function buildFindNoteStatsTargetsSnapshot(state) {
+  if (!state?.targetPitchClass) return [];
+
+  const positions = remainingTargetPositions(state);
+  if (positions.length === 0) return [];
+
+  return [
+    {
+      pitchClass: state.targetPitchClass,
+      stringIndex: state.requireTargetString ? state.targetStringIndex : null,
+      stringNumber:
+        state.requireTargetString && state.targetStringIndex !== null
+          ? getVisualStringNumber(GUITAR, state.targetStringIndex)
+          : null,
+      positions: positions.map(mapPosition),
+    },
+  ];
+}
+
+function beginFindNoteStatsTask(state, { inputMode, variant }) {
+  if (!shouldCollectFindNoteStats(inputMode, variant)) {
+    activeTask = null;
+    return;
+  }
+
+  if (!state?.targetPitchClass) {
+    activeTask = null;
+    return;
+  }
+
+  const targets = buildFindNoteStatsTargetsSnapshot(state);
+  if (targets.length === 0 || targets[0].positions.length === 0) {
+    activeTask = null;
+    return;
+  }
+
+  activeTask = {
+    startedAt: Date.now(),
+    errors: 0,
+    inputMode,
+    variant,
+    targets,
+  };
+}
+
+function recordFindNoteStatsError() {
+  if (!activeTask) return;
+  activeTask.errors += 1;
+}
+
+function discardFindNoteStatsTask() {
+  activeTask = null;
+  statsPauseStartedAt = null;
+}
+
+function createFindNoteStatsRecord(session, finishedAt = Date.now()) {
+  if (!session) return null;
+
+  return {
+    id: `${finishedAt}-${++recordSeq}`,
+    startedAt: new Date(session.startedAt).toISOString(),
+    finishedAt: new Date(finishedAt).toISOString(),
+    durationMs: Math.max(0, finishedAt - session.startedAt),
+    errors: session.errors,
+    inputMode: session.inputMode,
+    variant: session.variant,
+    targets: session.targets,
+  };
+}
+
+async function saveFindNoteStatsRecord(record) {
+  if (!record) return { saved: false, reason: 'empty' };
+
+  const data = await loadAppData();
+  data.stats.records.push(record);
+  await saveAppData(data);
+  return { saved: true, storage: 'memory' };
+}
+
+async function clearFindNoteStatsRecords() {
+  const data = await loadAppData();
+  data.stats.records = [];
+  await saveAppData(data);
+  return { cleared: true, storage: 'memory' };
+}
+
+async function fetchFindNoteStatsRecords() {
+  const data = await loadAppData();
+  const records = Array.isArray(data.stats?.records) ? data.stats.records : [];
+  return [...records].sort((a, b) => String(b.startedAt).localeCompare(String(a.startedAt)));
+}
+
+async function completeFindNoteStatsTask({ position } = {}) {
+  if (!activeTask) return null;
+
+  let targets = activeTask.targets;
+  if (position) {
+    const base = activeTask.targets[0] ?? {};
+    targets = [
+      {
+        pitchClass: base.pitchClass,
+        stringIndex: base.stringIndex ?? position.string,
+        stringNumber: base.stringNumber ?? getVisualStringNumber(GUITAR, position.string),
+        positions: [mapPosition(position)],
+      },
+    ];
+  }
+
+  const record = createFindNoteStatsRecord({ ...activeTask, targets });
+  activeTask = null;
+  if (!record) return null;
+
+  await saveFindNoteStatsRecord(record);
+  return record;
+}
+
+function getActiveFindNoteStatsTaskForTest() {
+  return activeTask ? { ...activeTask, targets: structuredClone(activeTask.targets) } : null;
+}
+
+
+// ----- js/debug-log.js -----
+
+/**
+ * @module debug-log
+ * @description Таблица записей статистики «Найди ноту».
+ * @depends find-note-stats
+ */
+
+const INPUT_MODE_LABELS = {
+  mouse: 'Мышкой',
+  listen: 'Слушать',
+};
+
+const VARIANT_LABELS = {
+  any: 'Любую',
+  all: 'Все',
+};
+
+let logPanelOpen = false;
+
+function formatDateTime(iso) {
+  if (!iso) return '—';
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return date.toLocaleString('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+}
+
+function formatDuration(durationMs) {
+  if (typeof durationMs !== 'number' || durationMs < 0) return '—';
+  if (durationMs < 1000) return `${durationMs} мс`;
+  return `${(durationMs / 1000).toFixed(1)} с`;
+}
+
+function formatMode(inputMode, variant) {
+  const inputLabel = INPUT_MODE_LABELS[inputMode] ?? inputMode ?? '—';
+  const variantLabel = VARIANT_LABELS[variant] ?? variant ?? '—';
+  return `${inputLabel} · ${variantLabel}`;
+}
+
+function formatTargets(targets) {
+  if (!Array.isArray(targets) || targets.length === 0) return '—';
+
+  return targets
+    .map((target) => {
+      const pitchClass = target.pitchClass ?? '—';
+      const positions = Array.isArray(target.positions) ? target.positions : [];
+      if (positions.length === 0) return pitchClass;
+
+      return positions
+        .map((position) => {
+          const fretLabel = position.fret === 0 ? '0' : String(position.fret);
+          const stringLabel = position.stringNumber ?? position.string + 1;
+          return `${pitchClass} · стр. ${stringLabel}, лад ${fretLabel}`;
+        })
+        .join('; ');
+    })
+    .join(' | ');
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;');
+}
+
+function buildStatsTableHtml(records) {
+  if (!records.length) {
+    return '<p class="find-note-debug-log-empty">Записей пока нет.</p>';
+  }
+
+  const rows = records
+    .map((record) => {
+      const targets = formatTargets(record.targets);
+      return `
+        <tr>
+          <td>${escapeHtml(formatDateTime(record.finishedAt || record.startedAt))}</td>
+          <td>${escapeHtml(targets)}</td>
+          <td>${escapeHtml(String(record.errors ?? 0))}</td>
+          <td>${escapeHtml(formatDuration(record.durationMs))}</td>
+          <td>${escapeHtml(formatMode(record.inputMode, record.variant))}</td>
+        </tr>
+      `;
+    })
+    .join('');
+
+  return `
+    <table class="find-note-debug-log-table">
+      <thead>
+        <tr>
+          <th>Когда</th>
+          <th>Нота · лады</th>
+          <th>Ошибки</th>
+          <th>Время</th>
+          <th>Режим</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+}
+
+function isStatsLogPanelOpen() {
+  return logPanelOpen;
+}
+
+function closeStatsLogPanel() {
+  logPanelOpen = false;
+}
+
+function updateStatsLogControls({
+  logButton,
+  logPanel,
+  findNotePanelVisible,
+  statsToolsVisible,
+}) {
+  if (!logButton) return;
+
+  const showLogButton = findNotePanelVisible && statsToolsVisible;
+  logButton.hidden = !showLogButton;
+  logButton.classList.toggle('active', logPanelOpen);
+
+  if (!logPanel) return;
+
+  if (!statsToolsVisible || !logPanelOpen || !findNotePanelVisible) {
+    logPanel.hidden = true;
+    return;
+  }
+
+  logPanel.hidden = false;
+}
+
+async function refreshStatsLogPanel(logPanel, { inputMode, variant } = {}) {
+  if (!logPanel) return;
+
+  logPanel.innerHTML = '<p class="find-note-debug-log-empty">Загрузка…</p>';
+  let records = await fetchFindNoteStatsRecords();
+  if (inputMode && variant && shouldCollectFindNoteStats(inputMode, variant)) {
+    records = records.filter((record) => matchesFindNoteStatsMode(record, inputMode, variant));
+  }
+  logPanel.innerHTML = buildStatsTableHtml(records);
+}
+
+async function toggleStatsLogPanel({
+  logButton,
+  logPanel,
+  findNotePanelVisible,
+  statsToolsVisible,
+  statsModeFilter = null,
+}) {
+  if (!findNotePanelVisible || !statsToolsVisible) return false;
+
+  logPanelOpen = !logPanelOpen;
+  updateStatsLogControls({
+    logButton,
+    logPanel,
+    findNotePanelVisible,
+    statsToolsVisible,
+  });
+
+  if (logPanelOpen) {
+    await refreshStatsLogPanel(logPanel, statsModeFilter ?? {});
+  }
+
+  return logPanelOpen;
+}
+
+function initStatsLog({
+  logButton,
+  logPanel,
+  isFindNotePanelVisible,
+  shouldShowControls,
+  getStatsModeFilter,
+}) {
+  if (logButton) {
+    logButton.addEventListener('click', () => {
+      void toggleStatsLogPanel({
+        logButton,
+        logPanel,
+        findNotePanelVisible: isFindNotePanelVisible(),
+        statsToolsVisible: shouldShowControls?.() ?? isFindNotePanelVisible(),
+        statsModeFilter: getStatsModeFilter?.() ?? null,
+      });
+    });
+  }
+
+  const sync = () => {
+    updateStatsLogControls({
+      logButton,
+      logPanel,
+      findNotePanelVisible: isFindNotePanelVisible(),
+      statsToolsVisible: shouldShowControls?.() ?? isFindNotePanelVisible(),
+    });
+  };
+
+  return {
+    sync,
+    refresh: () => refreshStatsLogPanel(logPanel, getStatsModeFilter?.() ?? {}),
+  };
+}
+
+
+// ----- js/find-note-view.js -----
+
+/**
+ * @module find-note-view
+ * @description DOM/HTML для панели задачи «Найди ноту».
+ * @depends find-note, note-chip, config
+ */
+
+function estimateHistoryCapacity({
+  contentWidth,
+  chipWidth,
+  gap = FIND_NOTE_HISTORY_GAP_PX,
+} = {}) {
+  let resolvedChipWidth = chipWidth;
+  let resolvedContentWidth = contentWidth;
+
+  if (resolvedContentWidth == null || resolvedChipWidth == null) {
+    if (typeof document === 'undefined') return Infinity;
+
+    resolvedChipWidth =
+      resolvedChipWidth ??
+      (parseFloat(
+        getComputedStyle(document.documentElement).getPropertyValue('--note-chip-width')
+      ) || 72);
+
+    const section = document.querySelector('.fretboard-section');
+    if (!section) return Infinity;
+
+    const sectionStyle = getComputedStyle(section);
+    const sectionPadX =
+      parseFloat(sectionStyle.paddingLeft) + parseFloat(sectionStyle.paddingRight);
+    resolvedContentWidth = section.clientWidth - sectionPadX;
+  }
+
+  return computeHistoryCapacity(resolvedContentWidth, resolvedChipWidth, gap);
+}
+
+function buildTaskPanelHtml(state, now = performance.now(), { capacity = Infinity } = {}) {
+  const total = state.history.length;
+  const historyHtml = state.history
+    .map((item, index) => {
+      const opacity = getHistoryItemOpacity(item, now, { index, total, capacity });
+      if (opacity <= 0) return '';
+      return `
+        <div class="note-chip-grid find-note-history-item">
+          ${buildNoteChipHtml(item.pitchClass, { opacity })}
+        </div>
+      `;
+    })
+    .join('');
+
+  const currentHtml =
+    !state.completed && state.targetPitchClass
+      ? `
+        <div class="note-chip-grid find-note-current">
+          ${buildNoteChipHtml(state.targetPitchClass)}
+        </div>
+      `
+      : '';
+
+  return `
+    <div class="find-note-task">
+      <div class="find-note-task-row">
+        <div class="find-note-history" aria-label="История">${historyHtml}</div>
+        ${currentHtml}
+      </div>
+    </div>
+  `;
+}
+
+
+// ----- js/note-chip.js -----
+
+/**
+ * @module note-chip
+ * @description HTML-чипы нот для UI.
+ * @depends note
+ */
+
+function pitchClassButtonLabel(pitchClass) {
+  const noteName = pitchClass.replace('#', '');
+  const accidental = pitchClass.includes('#') ? '♯' : '';
+  return `${pitchClass} (${getNoteNameRu(noteName, accidental)})`;
+}
+
+function buildNoteChipHtml(pitchClass, { opacity = 1, interactive = false } = {}) {
+  if (!pitchClass) return '';
+
+  const color = getNoteRainbowColor(pitchClass);
+  const textColor = getContrastTextColor(color);
+  const textShadow =
+    textColor === '#ffffff'
+      ? '0 1px 2px rgba(0, 0, 0, 0.35)'
+      : '0 1px 0 rgba(255, 255, 255, 0.55)';
+  const opacityStyle = opacity < 1 ? ` opacity: ${opacity};` : '';
+  const tag = interactive ? 'button' : 'span';
+  const typeAttr = interactive ? ' type="button"' : '';
+  const className = interactive ? 'note-palette-btn' : 'note-palette-btn note-chip';
+  const extraAttrs = interactive
+    ? ` data-pitch="${pitchClass}" aria-pressed="false"`
+    : '';
+
+  return `
+    <${tag}${typeAttr}
+      class="${className}"
+      ${extraAttrs}
+      style="--note-color: ${color}; background-color: ${color}; color: ${textColor}; text-shadow: ${textShadow};${opacityStyle}"
+    >
+      ${pitchClassButtonLabel(pitchClass)}
+    </${tag}>
+  `;
+}
+
+function buildNoteChipGridHtml(pitchClass) {
+  return `<div class="note-chip-grid">${buildNoteChipHtml(pitchClass)}</div>`;
+}
+
+function syncNoteChipWidth(section = document.querySelector('.fretboard-section')) {
+  if (!section) return;
+
+  const sectionStyle = getComputedStyle(section);
+  const sectionPadX =
+    parseFloat(sectionStyle.paddingLeft) + parseFloat(sectionStyle.paddingRight);
+  const palettePadX = 28;
+  const gap = 6;
+  const contentWidth = section.clientWidth - sectionPadX;
+  const width = (contentWidth - palettePadX - 11 * gap) / 12;
+
+  document.documentElement.style.setProperty(
+    '--note-chip-width',
+    `${Math.max(Math.round(width), 64)}px`
+  );
+}
+
+
+// ----- js/fretboard-view-layout.js -----
+
+/**
+ * @module fretboard-view-layout
+ * @description Геометрия ладов и разметка грифа.
+ * @depends config
+ */
+
+const STANDARD_MARKER_FRETS = [3, 5, 7, 9, 12, 15, 17, 19, 21];
+
+const FRETBOARD_LAYOUT = {
+  paddingLeft: 80,
+  labelColumnX: 36,
+  paddingRight: 24,
+  headstockWidth: 36,
+  paddingTop: 36,
+  paddingBottom: 28,
+  drawableWidth: 900,
+  stringSpacing: 22,
+  stringInset: 10,
+};
+
+function fretPosition(scaleLength, fretNumber, unit) {
+  const scaleMm = unit === 'mm' ? scaleLength : scaleLength * 25.4;
+  if (fretNumber === 0) return 0;
+  return scaleMm * (1 - Math.pow(2, -fretNumber / 12));
+}
+
+function buildFretPositions(guitar, drawableWidth) {
+  const { frets, scaleLength, scaleUnit } = guitar;
+  const positions = [0];
+  const totalScale = fretPosition(scaleLength, frets, scaleUnit);
+
+  for (let i = 1; i <= frets; i++) {
+    positions.push(fretPosition(scaleLength, i, scaleUnit));
+  }
+
+  const scale = drawableWidth / totalScale;
+  return positions.map((p) => p * scale);
+}
+
+function stringY(neckY, stringIndex, stringSpacing, stringInset) {
+  return neckY + stringInset + stringIndex * stringSpacing;
+}
+
+
+// ----- js/fretboard-view-svg.js -----
+
+/**
+ * @module fretboard-view-svg
+ * @description SVG-примитивы и стили струн.
+ * @depends fretboard
+ */
+
+function rect(x, y, w, h, attrs) {
+  const el = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  el.setAttribute('x', x);
+  el.setAttribute('y', y);
+  el.setAttribute('width', w);
+  el.setAttribute('height', h);
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+  return el;
+}
+
+function lineEl(x1, y1, x2, y2, attrs) {
+  const el = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  el.setAttribute('x1', x1);
+  el.setAttribute('y1', y1);
+  el.setAttribute('x2', x2);
+  el.setAttribute('y2', y2);
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+  return el;
+}
+
+function textEl(x, y, content, attrs) {
+  const el = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  el.setAttribute('x', x);
+  el.setAttribute('y', y);
+  el.textContent = content;
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+  return el;
+}
+
+function lighten(hex, amount) {
+  return adjustColor(hex, amount);
+}
+
+function darken(hex, amount) {
+  return adjustColor(hex, -amount);
+}
+
+function adjustColor(hex, amount) {
+  const num = parseInt(hex.replace('#', ''), 16);
+  const r = Math.min(255, Math.max(0, (num >> 16) + amount));
+  const g = Math.min(255, Math.max(0, ((num >> 8) & 0xff) + amount));
+  const b = Math.min(255, Math.max(0, (num & 0xff) + amount));
+  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
+}
+
+function addDot(svg, x, y, theme) {
+  const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  dot.setAttribute('cx', x);
+  dot.setAttribute('cy', y);
+  dot.setAttribute('r', 5);
+  dot.setAttribute('fill', theme.inlay);
+  dot.setAttribute('opacity', '0.85');
+  svg.appendChild(dot);
+}
+
+function getStringStyle(guitar, visualStringIndex) {
+  const strings = guitar.theme.strings;
+  const tuningIndex = getTuningIndex(guitar, visualStringIndex);
+
+  const isWound = guitar.type === 'classical' && tuningIndex < 3;
+  if (isWound) {
+    const wound = typeof strings === 'object' ? strings.wound : null;
+    return {
+      type: 'wound',
+      color: wound?.core || '#a89878',
+      wrap: wound?.wrap || '#8a8070',
+      highlight: '#d8ccb0',
+      width: 2.8 - tuningIndex * 0.12,
+    };
+  }
+
+  const nylon = typeof strings === 'object' ? strings.nylon : null;
+  return {
+    type: 'nylon',
+    color: nylon?.color || '#fffef8',
+    highlight: '#ffffff',
+    width: 1.9 - (tuningIndex - 3) * 0.08,
+  };
+}
+
+
+// ----- js/fretboard-view-find-note.js -----
+
+/**
+ * @module fretboard-view-find-note
+ * @description Маркеры результата в режиме «Найди ноту» на SVG-грифе.
+ * @depends note, fretboard-view-svg
+ */
+
+function createFindNoteMarkHandlers({
+  matchLayer,
+  cellCenters,
+  hideSelected,
+  hideHover,
+  styleRainbowDot,
+  clearMatches,
+  clearGuess,
+}) {
+  const findNoteMarks = new Map();
+
+  function positionKey(string, fret) {
+    return `${string}:${fret}`;
+  }
+
+  function styleWhiteDot(dot) {
+    dot.setAttribute('fill', 'rgba(255, 255, 255, 0.95)');
+    dot.removeAttribute('fill-opacity');
+    dot.setAttribute('stroke', 'rgba(0, 0, 0, 0.14)');
+    dot.setAttribute('stroke-width', '1');
+    dot.setAttribute('class', 'fret-tap fret-tap-selected');
+  }
+
+  function fadeOutAndRemove(dot, durationMs, onComplete) {
+    const fillStart = parseFloat(dot.getAttribute('fill-opacity') || '1');
+    const strokeStart = parseFloat(dot.getAttribute('stroke-opacity') || '1');
+    const start = performance.now();
+
+    function frame(now) {
+      const progress = Math.min(1, (now - start) / durationMs);
+      const remaining = 1 - progress;
+      dot.setAttribute('fill-opacity', String(fillStart * remaining));
+      dot.setAttribute('stroke-opacity', String(strokeStart * remaining));
+
+      if (progress < 1) {
+        requestAnimationFrame(frame);
+      } else {
+        dot.remove();
+        onComplete?.();
+      }
+    }
+
+    requestAnimationFrame(frame);
+  }
+
+  function showFindNoteResult(cx, cy, isCorrect, pitchClass, options = {}) {
+    hideSelected();
+    hideHover();
+
+    const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    dot.setAttribute('cx', cx);
+    dot.setAttribute('cy', cy);
+    dot.setAttribute('r', 10);
+    dot.setAttribute('class', 'fret-tap fret-tap-result');
+    dot.setAttribute('pointer-events', 'none');
+
+    if (isCorrect) {
+      styleRainbowDot(dot, getNoteRainbowColor(pitchClass));
+    } else {
+      styleWhiteDot(dot);
+    }
+
+    matchLayer.appendChild(dot);
+
+    if (options.fadeMs) {
+      fadeOutAndRemove(dot, options.fadeMs);
+    }
+  }
+
+  function appendMarkedDot(cx, cy, key) {
+    const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    dot.setAttribute('data-find-key', key);
+    dot.setAttribute('cx', cx);
+    dot.setAttribute('cy', cy);
+    dot.setAttribute('r', 10);
+    matchLayer.appendChild(dot);
+    return dot;
+  }
+
+  function markFindNotePosition(string, fret, isCorrect, pitchClass, options = {}) {
+    const key = positionKey(string, fret);
+    if (findNoteMarks.get(key) === 'correct') return;
+
+    matchLayer.querySelectorAll(`[data-find-key="${key}"]`).forEach((el) => el.remove());
+
+    const cell = cellCenters.find((c) => c.string === string && c.fret === fret);
+    if (!cell) return;
+
+    const dot = appendMarkedDot(cell.cx, cell.cy, key);
+    if (isCorrect) {
+      styleRainbowDot(dot, getNoteRainbowColor(pitchClass));
+      findNoteMarks.set(key, 'correct');
+    } else {
+      styleWhiteDot(dot);
+      findNoteMarks.set(key, 'wrong');
+      if (options.fadeMs) {
+        fadeOutAndRemove(dot, options.fadeMs, () => {
+          findNoteMarks.delete(key);
+          options.onFadeComplete?.();
+        });
+      }
+    }
+
+    hideSelected();
+    hideHover();
+  }
+
+  function fadeOutAllFindNoteMarks(durationMs, onComplete) {
+    const dots = [...matchLayer.querySelectorAll('[data-find-key]')];
+
+    if (dots.length === 0) {
+      findNoteMarks.clear();
+      onComplete?.();
+      return;
+    }
+
+    let pending = dots.length;
+    dots.forEach((dot) => {
+      const markKey = dot.getAttribute('data-find-key');
+      fadeOutAndRemove(dot, durationMs, () => {
+        if (markKey) findNoteMarks.delete(markKey);
+        pending -= 1;
+        if (pending === 0) {
+          findNoteMarks.clear();
+          onComplete?.();
+        }
+      });
+    });
+  }
+
+  function clearFindNoteMarks() {
+    findNoteMarks.clear();
+    clearMatches();
+    clearGuess();
+  }
+
+  function isFindNoteMarkCorrect(string, fret) {
+    return findNoteMarks.get(positionKey(string, fret)) === 'correct';
+  }
+
+  return {
+    showFindNoteResult,
+    markFindNotePosition,
+    fadeOutAllFindNoteMarks,
+    clearFindNoteMarks,
+    isFindNoteMarkCorrect,
+  };
+}
+
+
+// ----- js/fretboard-view-interaction.js -----
+
+/**
+ * @module fretboard-view-interaction
+ * @description Интерактивные слои грифа: клики, подсветка, find-note marks.
+ * @depends fretboard, note, fretboard-view-find-note, fretboard-view-svg
+ */
+
+function attachFretboardInteraction({
+  container,
+  guitar,
+  interactive,
+  stringCount,
+  cellCenters,
+  stringVisualGroups,
+  matchLayer,
+  statsLayer,
+  selectedDot,
+  hoverDot,
+  statsScores,
+}) {
+  let selection = null;
+
+  function styleRainbowDot(dot, color, opacity = 1) {
+    dot.setAttribute('fill', color);
+    if (opacity < 1) {
+      dot.setAttribute('fill-opacity', String(opacity));
+    } else {
+      dot.removeAttribute('fill-opacity');
+    }
+    dot.setAttribute('stroke', 'rgba(255, 255, 255, 0.92)');
+    dot.setAttribute('stroke-width', '1.5');
+    dot.setAttribute('class', 'fret-tap fret-tap-rainbow');
+  }
+
+  function hideSelected() {
+    selectedDot.setAttribute('visibility', 'hidden');
+  }
+
+  function hideHover() {
+    hoverDot.setAttribute('visibility', 'hidden');
+  }
+
+  function showSelectedAt(cx, cy, note) {
+    selectedDot.setAttribute('cx', cx);
+    selectedDot.setAttribute('cy', cy);
+    if (note) {
+      styleRainbowDot(selectedDot, getNoteRainbowColor(getPitchClass(note)));
+    }
+    selectedDot.setAttribute('visibility', 'visible');
+  }
+
+  function showHoverAt(cx, cy) {
+    hoverDot.setAttribute('cx', cx);
+    hoverDot.setAttribute('cy', cy);
+    hoverDot.setAttribute('fill', 'rgba(255, 255, 255, 0.42)');
+    hoverDot.removeAttribute('fill-opacity');
+    hoverDot.setAttribute('stroke', 'rgba(255, 255, 255, 0.55)');
+    hoverDot.setAttribute('stroke-width', '1');
+    hoverDot.setAttribute('class', 'fret-tap fret-tap-hover');
+    hoverDot.setAttribute('visibility', 'visible');
+  }
+
+  function setSelection(cx, cy, note) {
+    selection = { cx, cy, note };
+    showSelectedAt(cx, cy, note);
+    hideHover();
+  }
+
+  function clearMatches() {
+    matchLayer.replaceChildren();
+  }
+
+  function clearGuess() {
+    selection = null;
+    hideSelected();
+    hideHover();
+    selectedDot.removeAttribute('fill-opacity');
+    selectedDot.removeAttribute('stroke-opacity');
+  }
+
+  const findNoteMarks = createFindNoteMarkHandlers({
+    matchLayer,
+    cellCenters,
+    hideSelected,
+    hideHover,
+    styleRainbowDot,
+    clearMatches,
+    clearGuess,
+  });
+
+  function appendRainbowDot(cx, cy, color, note = null) {
+    const parsed = note ? parseNote(note) : null;
+    const octaveLabel = parsed ? getRussianOctaveLabel(parsed.octave) : '';
+
+    if (!octaveLabel) {
+      const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      dot.setAttribute('class', 'fret-tap fret-tap-rainbow');
+      dot.setAttribute('cx', cx);
+      dot.setAttribute('cy', cy);
+      dot.setAttribute('r', 10);
+      dot.setAttribute('fill', color);
+      dot.setAttribute('stroke', 'rgba(255, 255, 255, 0.92)');
+      dot.setAttribute('stroke-width', '1.5');
+      matchLayer.appendChild(dot);
+      return;
+    }
+
+    const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    group.setAttribute('class', 'fret-tap fret-tap-rainbow fret-tap-labeled');
+    group.setAttribute('pointer-events', 'none');
+
+    const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    dot.setAttribute('cx', cx);
+    dot.setAttribute('cy', cy);
+    dot.setAttribute('r', 10);
+    dot.setAttribute('fill', color);
+    dot.setAttribute('stroke', 'rgba(255, 255, 255, 0.92)');
+    dot.setAttribute('stroke-width', '1.5');
+    group.appendChild(dot);
+
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.setAttribute('x', String(cx));
+    text.setAttribute('y', String(cy));
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('dominant-baseline', 'central');
+    text.setAttribute('font-size', '8.5');
+    text.setAttribute('font-weight', '700');
+    text.setAttribute('fill', getContrastTextColor(color));
+    text.setAttribute('class', 'fret-tap-label');
+    text.textContent = octaveLabel;
+    group.appendChild(text);
+
+    matchLayer.appendChild(group);
+  }
+
+  function highlightPitchClass(pitchClass) {
+    clearMatches();
+    const color = getNoteRainbowColor(pitchClass);
+
+    for (const { fret, string, cx, cy } of cellCenters) {
+      const note = getNoteAtFret(guitar, string, fret);
+      if (getPitchClass(note) !== pitchClass) continue;
+      appendRainbowDot(cx, cy, color, note);
+    }
+  }
+
+  function highlightAllNotes() {
+    clearMatches();
+
+    for (const { fret, string, cx, cy } of cellCenters) {
+      const note = getNoteAtFret(guitar, string, fret);
+      appendRainbowDot(cx, cy, getNoteRainbowColor(getPitchClass(note)), note);
+    }
+  }
+
+  function statsGreenStyle(strength) {
+    const t = Math.max(0, Math.min(1, strength));
+
+    const fillR = Math.round(214 + (74 - 214) * t);
+    const fillG = Math.round(245 + (222 - 245) * t);
+    const fillB = Math.round(228 + (128 - 228) * t);
+    const fillAlpha = 0.05 + t * 0.95;
+
+    const strokeR = Math.round(134 + (21 - 134) * t);
+    const strokeG = Math.round(196 + (128 - 196) * t);
+    const strokeB = Math.round(154 + (61 - 154) * t);
+    const strokeAlpha = 0.08 + t * 0.92;
+
+    return {
+      fill: `rgba(${fillR}, ${fillG}, ${fillB}, ${fillAlpha})`,
+      stroke: `rgba(${strokeR}, ${strokeG}, ${strokeB}, ${strokeAlpha})`,
+      tier: t >= 0.72 ? 'strong' : t >= 0.38 ? 'mid' : 'weak',
+    };
+  }
+
+  function renderStatsHeatmap(scores) {
+    statsLayer.replaceChildren();
+    if (!scores || scores.size === 0) return;
+
+    for (const { fret, string, cx, cy } of cellCenters) {
+      const key = `${string}:${fret}`;
+      const entry = scores.get(key);
+      if (!entry) continue;
+
+      const strength = entry.heatmapStrength ?? entry.normalized ?? 0;
+      const style = statsGreenStyle(strength);
+      const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      dot.setAttribute('class', `stats-note-dot stats-note-dot--${style.tier}`);
+      dot.setAttribute('cx', cx);
+      dot.setAttribute('cy', cy);
+      dot.setAttribute('r', style.tier === 'strong' ? 11 : 10);
+      dot.setAttribute('fill', style.fill);
+      dot.setAttribute('stroke', style.stroke);
+      dot.setAttribute(
+        'stroke-width',
+        style.tier === 'strong' ? '1.8' : style.tier === 'mid' ? '1.4' : '1.1'
+      );
+      statsLayer.appendChild(dot);
+    }
+  }
+
+  function addHitCell(hitLayer, x, y, w, h, fret, string, tapX, tapY) {
+    const cell = rect(x, y, w, h, {
+      fill: 'transparent',
+      class: 'fret-cell',
+      'data-fret': fret,
+      'data-string': string,
+      'pointer-events': interactive ? 'all' : 'none',
+    });
+    const cx = tapX ?? x + w / 2;
+    const cy = tapY ?? y + h / 2;
+    cellCenters.push({ fret, string, cx, cy });
+
+    if (!interactive) {
+      hitLayer.appendChild(cell);
+      return;
+    }
+
+    cell.addEventListener('mouseenter', () => {
+      const mode = container.dataset.mode || 'fret-note';
+      if (
+        mode === 'find-note' &&
+        container.dataset.findVariant === 'all' &&
+        findNoteMarks.isFindNoteMarkCorrect(string, fret)
+      ) {
+        hideHover();
+        return;
+      }
+
+      if (selection && selection.cx === cx && selection.cy === cy) {
+        hideHover();
+        return;
+      }
+      showHoverAt(cx, cy);
+    });
+    cell.addEventListener('mouseleave', hideHover);
+    cell.addEventListener('click', () => {
+      const note = getNoteAtFret(guitar, string, fret);
+      const mode = container.dataset.mode || 'fret-note';
+
+      if (mode === 'note-frets') {
+        hideSelected();
+        hideHover();
+      } else if (mode === 'find-note') {
+        hideHover();
+      } else {
+        setSelection(cx, cy, note);
+      }
+
+      container.dispatchEvent(
+        new CustomEvent('fret-click', {
+          detail: { fret, string, note, cx, cy },
+        })
+      );
+    });
+    hitLayer.appendChild(cell);
+  }
+
+  return {
+    addHitCell,
+    highlightPitchClass,
+    highlightAllNotes,
+    showFindNoteResult: findNoteMarks.showFindNoteResult,
+    markFindNotePosition: findNoteMarks.markFindNotePosition,
+    clearGuess,
+    clearFindNoteMarks: findNoteMarks.clearFindNoteMarks,
+    fadeOutAllFindNoteMarks: findNoteMarks.fadeOutAllFindNoteMarks,
+    renderStatsHeatmap,
+    setFindNoteTargetString(stringIndex) {
+      const activeIndex =
+        typeof stringIndex === 'number' && stringIndex >= 0 && stringIndex < stringCount
+          ? stringIndex
+          : null;
+      stringVisualGroups.forEach((group, index) => {
+        group.classList.toggle('find-note-target-string', index === activeIndex);
+      });
+    },
+    getCellDetail(string, fret) {
+      const cell = cellCenters.find((c) => c.string === string && c.fret === fret);
+      return cell
+        ? { fret, string, cx: cell.cx, cy: cell.cy, note: getNoteAtFret(guitar, string, fret) }
+        : null;
+    },
+    clearPitchHighlights: clearMatches,
+  };
+}
+
+
+// ----- js/fretboard-view-neck.js -----
+
+/**
+ * @module fretboard-view-neck
+ * @description SVG-отрисовка грифа: лады, струны, маркеры.
+ * @depends fretboard, fretboard-view-layout, fretboard-view-svg
+ */
+
+function renderFretboardNeck(guitar) {
+  const stringCount = guitar.strings;
+  const fretCount = guitar.frets;
+  const theme = guitar.theme;
+
+  const {
+    paddingLeft,
+    labelColumnX,
+    paddingRight,
+    headstockWidth,
+    paddingTop,
+    paddingBottom,
+    drawableWidth,
+    stringSpacing,
+    stringInset,
+  } = FRETBOARD_LAYOUT;
+
+  const neckHeight = (stringCount - 1) * stringSpacing + stringInset * 2;
+  const fretPositions = buildFretPositions(guitar, drawableWidth);
+  const totalWidth = paddingLeft + drawableWidth + paddingRight;
+  const totalHeight = paddingTop + neckHeight + paddingBottom;
+
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', `0 0 ${totalWidth} ${totalHeight}`);
+
+  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+  const neckGrad = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+  neckGrad.setAttribute('id', 'neckGrad');
+  neckGrad.setAttribute('x1', '0%');
+  neckGrad.setAttribute('y1', '0%');
+  neckGrad.setAttribute('x2', '0%');
+  neckGrad.setAttribute('y2', '100%');
+  neckGrad.innerHTML = `
+    <stop offset="0%" stop-color="${lighten(theme.fretboard, 15)}"/>
+    <stop offset="50%" stop-color="${theme.fretboard}"/>
+    <stop offset="100%" stop-color="${darken(theme.fretboard, 10)}"/>
+  `;
+  defs.appendChild(neckGrad);
+  svg.appendChild(defs);
+
+  const neckY = paddingTop;
+  const neckX = paddingLeft - 8;
+  const neckW = drawableWidth + 16;
+  const nutW = 6;
+  const nutX = paddingLeft - nutW;
+
+  svg.appendChild(
+    rect(neckX, neckY - 4, neckW, neckHeight + 8, {
+      fill: 'url(#neckGrad)',
+      rx: 4,
+      stroke: darken(theme.fretboard, 20),
+      'stroke-width': 1,
+    })
+  );
+
+  svg.appendChild(
+    rect(nutX, neckY - 2, nutW, neckHeight + 4, {
+      fill: theme.nut,
+      rx: 1,
+      stroke: darken(theme.nut, 15),
+      'stroke-width': 0.5,
+    })
+  );
+
+  for (let f = 1; f <= fretCount; f++) {
+    const x = paddingLeft + fretPositions[f];
+    svg.appendChild(
+      lineEl(x, neckY, x, neckY + neckHeight, {
+        stroke: theme.frets,
+        'stroke-width': f === 12 ? 2.5 : 1.5,
+        'stroke-linecap': 'round',
+      })
+    );
+
+    const labelX = paddingLeft + (fretPositions[f] + fretPositions[f - 1]) / 2;
+    svg.appendChild(
+      textEl(labelX, neckY - 12, String(f), {
+        fill: theme.markers,
+        'font-size': 10,
+        'text-anchor': 'middle',
+        opacity: 0.7,
+      })
+    );
+  }
+
+  for (const f of STANDARD_MARKER_FRETS.filter((marker) => marker <= fretCount)) {
+    const x = paddingLeft + (fretPositions[f] + fretPositions[f - 1]) / 2;
+    const centerY = neckY + neckHeight / 2;
+
+    if (f === 12 && fretCount >= 12) {
+      addDot(svg, x, centerY - stringSpacing * 0.8, theme);
+      addDot(svg, x, centerY + stringSpacing * 0.8, theme);
+    } else {
+      addDot(svg, x, centerY, theme);
+    }
+  }
+
+  const labelsLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  labelsLayer.setAttribute('class', 'string-labels');
+  labelsLayer.setAttribute('pointer-events', 'none');
+
+  const stringsLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  stringsLayer.setAttribute('class', 'strings-layer');
+  stringsLayer.setAttribute('pointer-events', 'none');
+
+  const stringVisualGroups = [];
+
+  for (let s = 0; s < stringCount; s++) {
+    const y = stringY(neckY, s, stringSpacing, stringInset);
+    const cfg = getStringStyle(guitar, s);
+    const stringStart = paddingLeft - nutW - headstockWidth;
+    const stringEnd = paddingLeft + drawableWidth;
+
+    const stringGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    stringGroup.setAttribute('class', 'string-visual');
+    stringGroup.setAttribute('data-string-index', String(s));
+
+    stringGroup.appendChild(
+      lineEl(stringStart, y, stringEnd, y, {
+        class: 'string-shadow-line',
+        stroke: '#120a06',
+        'stroke-width': cfg.width + 1.6,
+        'stroke-linecap': 'round',
+        opacity: 0.55,
+        'pointer-events': 'none',
+      })
+    );
+
+    if (cfg.type === 'wound') {
+      stringGroup.appendChild(
+        lineEl(stringStart, y, stringEnd, y, {
+          class: 'string-wrap-line',
+          stroke: cfg.wrap,
+          'stroke-width': cfg.width + 0.9,
+          'stroke-linecap': 'round',
+          opacity: 0.75,
+          'pointer-events': 'none',
+        })
+      );
+    }
+
+    stringGroup.appendChild(
+      lineEl(stringStart, y, stringEnd, y, {
+        class: 'string-main-line',
+        stroke: cfg.color,
+        'stroke-width': cfg.width,
+        'stroke-linecap': 'round',
+        'pointer-events': 'none',
+      })
+    );
+
+    stringGroup.appendChild(
+      lineEl(stringStart, y - 0.8, stringEnd, y - 0.8, {
+        class: 'string-shine-line',
+        stroke: cfg.highlight,
+        'stroke-width': 0.7,
+        'stroke-linecap': 'round',
+        opacity: cfg.type === 'wound' ? 0.35 : 0.65,
+        'pointer-events': 'none',
+      })
+    );
+
+    stringsLayer.appendChild(stringGroup);
+    stringVisualGroups.push(stringGroup);
+
+    labelsLayer.appendChild(
+      rect(labelColumnX - 16, y - 9, 32, 18, {
+        class: 'string-label-bg',
+        fill: '#ffffff',
+        stroke: '#b8b8c4',
+        'stroke-width': 1,
+        rx: 5,
+      })
+    );
+    labelsLayer.appendChild(
+      textEl(labelColumnX, y + 1, getVisualStringLabel(guitar, s), {
+        class: 'string-label-text',
+        fill: '#14141a',
+        'font-size': 15,
+        'font-weight': '700',
+        'text-anchor': 'middle',
+        'dominant-baseline': 'middle',
+        'pointer-events': 'none',
+      })
+    );
+  }
+
+  svg.appendChild(stringsLayer);
+  svg.appendChild(labelsLayer);
+
+  return {
+    svg,
+    neckY,
+    paddingLeft,
+    nutW,
+    nutX,
+    headstockWidth,
+    stringSpacing,
+    stringInset,
+    fretPositions,
+    fretCount,
+    stringCount,
+    stringVisualGroups,
+    totalWidth,
+    totalHeight,
+  };
+}
+
+
+// ----- js/fretboard-view.js -----
+
+/**
+ * @module fretboard-view
+ * @description SVG-рендер грифа и интерактивные hit-слои.
+ * @depends fretboard-view-layout, fretboard-view-neck, fretboard-view-interaction
+ */
+
+function renderFretboard(guitar, container, options = {}) {
+  const interactive = options.interactive !== false;
+  const statsScores = options.statsScores ?? null;
+
+  const neck = renderFretboardNeck(guitar);
+  const {
+    svg,
+    neckY,
+    paddingLeft,
+    nutW,
+    nutX,
+    headstockWidth,
+    stringSpacing,
+    stringInset,
+    fretPositions,
+    fretCount,
+    stringCount,
+    stringVisualGroups,
+    totalWidth,
+    totalHeight,
+  } = neck;
+
+  svg.setAttribute('role', 'img');
+  svg.setAttribute(
+    'aria-label',
+    statsScores ? 'Статистика отгадывания нот на грифе' : 'Гриф гитары'
+  );
+
+  const hitLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  hitLayer.setAttribute('class', 'hit-layer');
+
+  const tapLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  tapLayer.setAttribute('class', 'tap-layer');
+  tapLayer.setAttribute('pointer-events', 'none');
+
+  const selectedDot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  selectedDot.setAttribute('class', 'fret-tap fret-tap-selected');
+  selectedDot.setAttribute('r', 10);
+  selectedDot.setAttribute('visibility', 'hidden');
+  tapLayer.appendChild(selectedDot);
+
+  const hoverDot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  hoverDot.setAttribute('class', 'fret-tap fret-tap-hover');
+  hoverDot.setAttribute('r', 10);
+  hoverDot.setAttribute('visibility', 'hidden');
+  tapLayer.appendChild(hoverDot);
+
+  const matchLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  matchLayer.setAttribute('class', 'match-layer');
+  matchLayer.setAttribute('pointer-events', 'none');
+  tapLayer.appendChild(matchLayer);
+
+  const statsLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  statsLayer.setAttribute('class', 'stats-layer');
+  statsLayer.setAttribute('pointer-events', 'none');
+  tapLayer.appendChild(statsLayer);
+
+  const cellCenters = [];
+  const interaction = attachFretboardInteraction({
+    container,
+    guitar,
+    interactive,
+    stringCount,
+    cellCenters,
+    stringVisualGroups,
+    matchLayer,
+    statsLayer,
+    selectedDot,
+    hoverDot,
+    statsScores,
+  });
+
+  for (let f = 1; f <= fretCount; f++) {
+    const x1 = paddingLeft + fretPositions[f - 1];
+    const x2 = paddingLeft + fretPositions[f];
+
+    for (let s = 0; s < stringCount; s++) {
+      interaction.addHitCell(
+        hitLayer,
+        x1,
+        stringY(neckY, s, stringSpacing, stringInset) - stringSpacing / 2,
+        x2 - x1,
+        stringSpacing,
+        f,
+        s
+      );
+    }
+  }
+
+  const openStringRightPad = 14;
+  for (let s = 0; s < stringCount; s++) {
+    const y = stringY(neckY, s, stringSpacing, stringInset);
+    const openHitX = paddingLeft - nutW - headstockWidth;
+    const openHitW = paddingLeft - openHitX + openStringRightPad;
+    const nutCenterX = nutX + nutW / 2;
+    interaction.addHitCell(
+      hitLayer,
+      openHitX,
+      y - stringSpacing / 2,
+      openHitW,
+      stringSpacing,
+      0,
+      s,
+      nutCenterX,
+      y
+    );
+  }
+
+  svg.appendChild(hitLayer);
+  svg.appendChild(tapLayer);
+
+  if (statsScores) {
+    interaction.renderStatsHeatmap(statsScores);
+  }
+
+  container.innerHTML = '';
+  container.appendChild(svg);
+  if (statsScores) {
+    container.classList.add('fretboard-stats-view');
+  } else {
+    container.classList.remove('fretboard-stats-view');
+  }
+
+  container.highlightPitchClass = interaction.highlightPitchClass;
+  container.highlightAllNotes = interaction.highlightAllNotes;
+  container.showFindNoteResult = interaction.showFindNoteResult;
+  container.markFindNotePosition = interaction.markFindNotePosition;
+  container.clearGuess = interaction.clearGuess;
+  container.clearFindNoteMarks = interaction.clearFindNoteMarks;
+  container.fadeOutAllFindNoteMarks = interaction.fadeOutAllFindNoteMarks;
+  container.getCellDetail = interaction.getCellDetail;
+  container.clearPitchHighlights = interaction.clearPitchHighlights;
+  container.setFindNoteTargetString = interaction.setFindNoteTargetString;
+  container.updateStatsHeatmap = interaction.renderStatsHeatmap;
+
+  return svg;
+}
+
+
+// ----- js/staff-view.js -----
+
+/**
+ * @module staff-view
+ * @description Рендер ноты на нотном стане.
+ * @depends staff
+ */
+
+const STAFF_LEFT = 60;
+const STAFF_WIDTH = 180;
+const NOTE_RX = 8;
+const NOTE_RY = 6;
+const LEDGER_HALF_WIDTH = 16;
+const PADDING_X = 18;
+const PADDING_Y = 18;
+
+function getLedgerYs(noteY, staffTop, staffBottom) {
+  const ledgerYs = [];
+  if (noteY < staffTop - 1) {
+    for (let y = staffTop - LINE_SPACING; y >= noteY - 0.5; y -= LINE_SPACING) {
+      ledgerYs.push(y);
+    }
+  } else if (noteY > staffBottom + 1) {
+    for (let y = staffBottom + LINE_SPACING; y <= noteY + 0.5; y += LINE_SPACING) {
+      ledgerYs.push(y);
+    }
+  }
+  return ledgerYs;
+}
+
+function getViewBounds(noteY, ledgerYs, staffBottom) {
+  const yValues = [STAFF_TOP, staffBottom, noteY - NOTE_RY, noteY + NOTE_RY, ...ledgerYs];
+  const minY = Math.min(...yValues) - PADDING_Y;
+  const maxY = Math.max(...yValues) + PADDING_Y;
+  const minX = -4;
+  const maxX = STAFF_LEFT + STAFF_WIDTH + PADDING_X;
+
+  return {
+    minX,
+    minY,
+    width: maxX - minX,
+    height: maxY - minY,
+  };
+}
+
+function renderNoteOnStaff(container, pitchName) {
+  const match = pitchName.match(/^([A-G])(#?)(\d)$/);
+  if (!match) {
+    container.innerHTML = '';
+    return;
+  }
+
+  const [, letter, accidental, octaveStr] = match;
+  const soundingOctave = parseInt(octaveStr, 10);
+  const staffOctave = soundingOctave + 1;
+  const staffBottom = STAFF_TOP + LINE_SPACING * 4;
+  const middleLineY = STAFF_TOP + LINE_SPACING * 2;
+  const noteX = STAFF_LEFT + STAFF_WIDTH * 0.58;
+
+  const steps = stepsFromB4(letter, staffOctave);
+  const noteY = middleLineY - steps * (LINE_SPACING / 2);
+  const ledgerYs = getLedgerYs(noteY, STAFF_TOP, staffBottom);
+  const view = getViewBounds(noteY, ledgerYs, staffBottom);
+
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', `${view.minX} ${view.minY} ${view.width} ${view.height}`);
+  svg.setAttribute('class', 'note-staff');
+  svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+  svg.setAttribute('aria-hidden', 'true');
+
+  for (let i = 0; i < 5; i++) {
+    const y = STAFF_TOP + i * LINE_SPACING;
+    svg.appendChild(staffLine(STAFF_LEFT, y, STAFF_WIDTH));
+  }
+
+  svg.appendChild(clef(STAFF_LEFT - 4, STAFF_TOP - 8));
+
+  for (const y of ledgerYs) {
+    svg.appendChild(staffLine(noteX - LEDGER_HALF_WIDTH, y, LEDGER_HALF_WIDTH * 2));
+  }
+
+  if (accidental) {
+    svg.appendChild(sharp(noteX - 24, noteY));
+  }
+
+  svg.appendChild(noteHead(noteX, noteY));
+
+  container.innerHTML = '';
+  container.appendChild(svg);
+}
+
+function staffLine(x, y, width) {
+  const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  line.setAttribute('x1', x);
+  line.setAttribute('y1', y);
+  line.setAttribute('x2', x + width);
+  line.setAttribute('y2', y);
+  line.setAttribute('class', 'staff-line');
+  return line;
+}
+
+function clef(x, y) {
+  const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  text.setAttribute('x', x);
+  text.setAttribute('y', y + LINE_SPACING * 4.4);
+  text.setAttribute('class', 'staff-clef');
+  text.textContent = '𝄞';
+  return text;
+}
+
+function sharp(x, y) {
+  const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  text.setAttribute('x', x);
+  text.setAttribute('y', y + 5);
+  text.setAttribute('class', 'staff-accidental');
+  text.textContent = '♯';
+  return text;
+}
+
+function noteHead(x, y) {
+  const note = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+  note.setAttribute('cx', x);
+  note.setAttribute('cy', y);
+  note.setAttribute('rx', NOTE_RX);
+  note.setAttribute('ry', NOTE_RY);
+  note.setAttribute('class', 'staff-note');
+  return note;
+}
+
+
+// ----- js/mode-fret-note.js -----
+
+/**
+ * @module mode-fret-note
+ * @description Режим «Что за нота?» — клик по ладу показывает ноту и стан.
+ * @depends config, note, fretboard, staff-view, note-chip
+ */
+
+function createFretNoteMode(deps) {
+  const { elements } = deps;
+
+  function showSelection(fret, string, note) {
+    const parsed = parseNote(note);
+
+    elements.selectionPanel.hidden = false;
+    syncNoteChipWidth();
+    elements.detailNote.innerHTML = parsed
+      ? buildNoteChipGridHtml(parsed.pitch)
+      : `<span class="selection-value">${note}</span>`;
+    elements.detailOctave.textContent = parsed ? getRussianOctaveName(parsed.octave) : '—';
+    elements.detailPosition.textContent = formatPosition(GUITAR, string, fret);
+
+    if (parsed) {
+      renderNoteOnStaff(elements.staffContainer, parsed.full);
+    } else {
+      elements.staffContainer.innerHTML = '';
+    }
+  }
+
+  function clearSelection() {
+    elements.selectionPanel.hidden = true;
+    elements.detailNote.innerHTML = '';
+    elements.staffContainer.innerHTML = '';
+    elements.fretboardContainer.clearPitchHighlights?.();
+  }
+
+  function onFretClick(detail) {
+    showSelection(detail.fret, detail.string, detail.note);
+  }
+
+  function onOutsideClick() {
+    clearSelection();
+  }
+
+  return {
+    enter() {
+      elements.selectionPanel.hidden = true;
+    },
+    leave() {
+      clearSelection();
+    },
+    onFretClick,
+    onOutsideClick,
+  };
+}
+
+
+// ----- js/mode-note-frets.js -----
+
+/**
+ * @module mode-note-frets
+ * @description Режим «Октавные точки» — выбор pitch class подсвечивает позиции на грифе.
+ * @depends note, note-chip
+ */
+
+function createNoteFretsMode(deps) {
+  const { elements } = deps;
+
+  let selectedPitchClass = null;
+  let showAllNotes = false;
+
+  function buildPalette() {
+    elements.notePalette.innerHTML = PITCH_CLASSES.map((pitchClass) =>
+      buildNoteChipHtml(pitchClass, { interactive: true })
+    ).join('');
+
+    elements.notePalette.querySelectorAll('.note-palette-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        selectPitchClass(btn.dataset.pitch);
+      });
+    });
+  }
+
+  function updatePaletteUI() {
+    elements.showAllNotesBtn.classList.toggle('active', showAllNotes);
+    elements.showAllNotesBtn.setAttribute('aria-pressed', String(showAllNotes));
+
+    elements.notePalette.querySelectorAll('.note-palette-btn').forEach((btn) => {
+      const pitch = btn.dataset.pitch;
+      const isActive = !showAllNotes && pitch === selectedPitchClass;
+      btn.classList.toggle('active', isActive);
+      btn.classList.toggle('dimmed', !showAllNotes && selectedPitchClass !== null && !isActive);
+      btn.setAttribute('aria-pressed', String(isActive));
+    });
+  }
+
+  function selectPitchClass(pitchClass) {
+    showAllNotes = false;
+    selectedPitchClass = pitchClass;
+    updatePaletteUI();
+    elements.fretboardContainer.highlightPitchClass?.(pitchClass);
+  }
+
+  function showAllNotesOnFretboard() {
+    showAllNotes = true;
+    selectedPitchClass = null;
+    updatePaletteUI();
+    elements.fretboardContainer.highlightAllNotes?.();
+  }
+
+  function clearSelection() {
+    selectedPitchClass = null;
+    showAllNotes = false;
+    elements.fretboardContainer.clearPitchHighlights?.();
+    updatePaletteUI();
+  }
+
+  function onFretClick(detail) {
+    selectPitchClass(getPitchClass(detail.note));
+  }
+
+  function onOutsideClick() {
+    clearSelection();
+  }
+
+  return {
+    enter() {
+      elements.notePalettePanel.hidden = false;
+      buildPalette();
+      updatePaletteUI();
+    },
+    leave() {
+      elements.notePalettePanel.hidden = true;
+      clearSelection();
+    },
+    onFretClick,
+    onOutsideClick,
+    toggleShowAll() {
+      if (showAllNotes) {
+        clearSelection();
+      } else {
+        showAllNotesOnFretboard();
+      }
+    },
+  };
+}
+
+
+// ----- js/stats-fretboard-view.js -----
+
+/**
+ * @module stats-fretboard-view
+ * @description Heatmap статистики на отдельном грифе.
+ * @depends config, fretboard-view, find-note-stats
+ */
+
+function renderFindNoteStatsFretboard(container, statsScores) {
+  renderFretboard(GUITAR, container, {
+    interactive: false,
+    statsScores,
+  });
+}
+
+async function refreshFindNoteStatsFretboard(container, { inputMode, variant } = {}) {
+  const scores = await buildFindNoteStatsHeatmap({ inputMode, variant });
+  renderFindNoteStatsFretboard(container, scores);
+  return scores;
+}
+
+
+// ----- js/mode-find-note-stats.js -----
+
+/**
+ * @module mode-find-note-stats
+ * @description Статистика и heatmap в режиме «Найди ноту».
+ * @depends find-note-stats, stats-fretboard-view, debug-log
+ */
+
+function createFindNoteStatsController({
+  elements,
+  getFindNote,
+  getInputMode,
+}) {
+  let statsPanelOpen = false;
+  let statsLogControls = null;
+
+  function shouldCollectStats() {
+    const findNote = getFindNote();
+    return shouldCollectFindNoteStats(getInputMode(), findNote.variant);
+  }
+
+  function shouldShowStatsPanel() {
+    return shouldCollectStats() && statsPanelOpen && !elements.findNotePanel?.hidden;
+  }
+
+  function syncStatsControls() {
+    const showStatsTools = !elements.findNotePanel?.hidden && shouldCollectStats();
+
+    statsLogControls?.sync();
+
+    if (elements.findNoteStatsHeatmapBtn) {
+      elements.findNoteStatsHeatmapBtn.hidden = !showStatsTools;
+      elements.findNoteStatsHeatmapBtn.classList.toggle('active', statsPanelOpen);
+    }
+
+    if (elements.findNoteStatsPanel) {
+      elements.findNoteStatsPanel.hidden = !shouldShowStatsPanel();
+    }
+
+    if (elements.findNoteStatsResetBtn) {
+      elements.findNoteStatsResetBtn.hidden = !shouldShowStatsPanel();
+    }
+  }
+
+  function renderStatsHeatmap() {
+    const findNote = getFindNote();
+    if (elements.findNoteStatsFretboard && findNote.positionScores) {
+      renderFindNoteStatsFretboard(elements.findNoteStatsFretboard, findNote.positionScores);
+    }
+  }
+
+  async function syncStatsPanel() {
+    syncStatsControls();
+    if (!shouldShowStatsPanel()) return;
+    await refreshStatsCache();
+    renderStatsHeatmap();
+  }
+
+  async function toggleStatsHeatmapPanel() {
+    if (!shouldCollectStats()) return false;
+    statsPanelOpen = !statsPanelOpen;
+    syncStatsControls();
+    await syncStatsPanel();
+    return statsPanelOpen;
+  }
+
+  async function refreshStatsPanelAfterSave() {
+    await refreshStatsCache();
+    if (shouldShowStatsPanel()) {
+      renderStatsHeatmap();
+    }
+    if (isStatsLogPanelOpen()) {
+      void statsLogControls?.refresh();
+    }
+  }
+
+  function syncStatsTask() {
+    const findNote = getFindNote();
+    findNote.useStatsWeightedPicking =
+      shouldCollectFindNoteStats(getInputMode(), findNote.variant) &&
+      Boolean(findNote.positionScores?.size);
+
+    beginFindNoteStatsTask(findNote, {
+      inputMode: getInputMode(),
+      variant: findNote.variant,
+    });
+  }
+
+  async function refreshStatsCache() {
+    const findNote = getFindNote();
+    if (!shouldCollectFindNoteStats(getInputMode(), findNote.variant)) {
+      findNote.positionScores = null;
+      findNote.useStatsWeightedPicking = false;
+      return;
+    }
+
+    try {
+      const context = await buildFindNoteStatsContext({
+        inputMode: getInputMode(),
+        variant: findNote.variant,
+      });
+      findNote.positionScores = context.positionScores;
+      findNote.useStatsWeightedPicking = context.positionScores.size > 0;
+    } catch (error) {
+      console.error(error);
+      findNote.positionScores = null;
+      findNote.useStatsWeightedPicking = false;
+    }
+  }
+
+  async function prepareStatsForPicking() {
+    const findNote = getFindNote();
+    if (shouldCollectFindNoteStats(getInputMode(), findNote.variant)) {
+      await refreshStatsCache();
+      syncStatsTask();
+    } else {
+      findNote.positionScores = null;
+      findNote.useStatsWeightedPicking = false;
+    }
+    await syncStatsPanel();
+  }
+
+  function initStatsLogControls() {
+    if (statsLogControls) return;
+
+    statsLogControls = initStatsLog({
+      logButton: elements.findNoteDebugLogBtn,
+      logPanel: elements.findNoteDebugLogPanel,
+      isFindNotePanelVisible: () => !elements.findNotePanel?.hidden,
+      shouldShowControls: () => !elements.findNotePanel?.hidden && shouldCollectStats(),
+      getStatsModeFilter: () => {
+        const findNote = getFindNote();
+        return shouldCollectFindNoteStats(getInputMode(), findNote.variant)
+          ? { inputMode: getInputMode(), variant: findNote.variant }
+          : null;
+      },
+    });
+  }
+
+  async function resetStats() {
+    if (
+      !window.confirm(
+        'Удалить всю статистику текущей сессии? Данные исчезнут после закрытия вкладки.'
+      )
+    ) {
+      return;
+    }
+
+    const findNote = getFindNote();
+    await clearFindNoteStatsRecords();
+    discardFindNoteStatsTask();
+    findNote.positionScores = null;
+    findNote.useStatsWeightedPicking = false;
+    await prepareStatsForPicking();
+    syncStatsTask();
+    if (isStatsLogPanelOpen()) {
+      void statsLogControls?.refresh();
+    }
+  }
+
+  function onPauseChanged(paused) {
+    if (paused) {
+      pauseFindNoteStatsTask();
+    } else {
+      resumeFindNoteStatsTask();
+    }
+  }
+
+  function onLeave() {
+    discardFindNoteStatsTask();
+    statsPanelOpen = false;
+    closeStatsLogPanel();
+    syncStatsControls();
+  }
+
+  function onEnter() {
+    statsPanelOpen = false;
+    syncStatsControls();
+  }
+
+  return {
+    shouldCollectStats,
+    shouldShowStatsPanel,
+    syncStatsControls,
+    syncStatsPanel,
+    toggleStatsHeatmapPanel,
+    refreshStatsPanelAfterSave,
+    syncStatsTask,
+    prepareStatsForPicking,
+    initStatsLogControls,
+    resetStats,
+    onPauseChanged,
+    onLeave,
+    onEnter,
+  };
+}
+
+
+// ----- js/mode-find-note-ui.js -----
+
+/**
+ * @module mode-find-note-ui
+ * @description UI режима «Найди ноту»: пауза, история, панель задачи, toggles.
+ * @depends config, find-note, find-note-view, find-note-stats
+ */
+
+function createFindNoteUI({
+  elements,
+  getFindNote,
+  getInputMode,
+  stats,
+  syncLayout,
+}) {
+  let findNotePaused = false;
+  let findNotePauseUiSnapshot = null;
+  let findNoteHistoryFadeFrame = null;
+
+  function isPaused() {
+    return findNotePaused;
+  }
+
+  function syncInputRules() {
+    getFindNote().requireTargetString = getFindNote().variant === FIND_VARIANTS.ANY;
+  }
+
+  function syncStringHighlight() {
+    const findNote = getFindNote();
+    const shouldHighlight =
+      !findNote.completed &&
+      findNote.requireTargetString &&
+      findNote.targetStringIndex !== null &&
+      isStringEnabled(findNote, findNote.targetStringIndex);
+
+    elements.fretboardContainer.setFindNoteTargetString?.(
+      shouldHighlight ? findNote.targetStringIndex : null
+    );
+  }
+
+  function syncPauseUI({ force = false } = {}) {
+    const showPause = !elements.findNotePanel?.hidden;
+    const paused = isPaused();
+    const snapshot = `${showPause}:${paused}`;
+    if (!force && snapshot === findNotePauseUiSnapshot) return;
+    findNotePauseUiSnapshot = snapshot;
+
+    const btn = elements.findNotePauseBtn;
+    if (btn) {
+      btn.hidden = !showPause;
+      btn.classList.toggle('active', paused);
+      btn.setAttribute('aria-pressed', String(paused));
+      btn.setAttribute('aria-label', paused ? 'Продолжить' : 'Пауза');
+      btn.title = paused ? 'Продолжить' : 'Пауза';
+    }
+
+    document.body.classList.toggle('find-note-paused', paused);
+
+    if (paused) {
+      elements.findNoteProgress.hidden = false;
+      elements.findNoteProgress.textContent = 'Пауза';
+    }
+  }
+
+  function setPaused(paused) {
+    const next = Boolean(paused);
+    if (findNotePaused === next) return;
+    findNotePaused = next;
+    stats.onPauseChanged(findNotePaused);
+    syncPauseUI({ force: true });
+    if (!findNotePaused) {
+      refreshUI();
+    }
+  }
+
+  function stopHistoryFade() {
+    if (findNoteHistoryFadeFrame) {
+      cancelAnimationFrame(findNoteHistoryFadeFrame);
+      findNoteHistoryFadeFrame = null;
+    }
+  }
+
+  function startHistoryFade() {
+    if (findNoteHistoryFadeFrame) return;
+    findNoteHistoryFadeFrame = requestAnimationFrame(tickHistoryFade);
+  }
+
+  function tickHistoryFade() {
+    findNoteHistoryFadeFrame = null;
+    refreshUI({ skipLayoutSync: true });
+    const capacity = estimateHistoryCapacity();
+    if (hasActiveHistoryFade(getFindNote(), performance.now(), capacity)) {
+      startHistoryFade();
+    }
+  }
+
+  function clearBoard() {
+    const findNote = getFindNote();
+    findNote.foundPositions.clear();
+    findNote.wrongPositions.clear();
+    elements.fretboardContainer.clearFindNoteMarks?.();
+  }
+
+  function updateStringToggleUI() {
+    const findNote = getFindNote();
+    elements.findNoteStringToggles?.forEach((btn) => {
+      const stringIndex = Number(btn.dataset.stringIndex);
+      const enabled = isStringEnabled(findNote, stringIndex);
+      btn.classList.toggle('active', enabled);
+      btn.setAttribute('aria-pressed', String(enabled));
+      btn.disabled = enabled && getEnabledStringIndices(findNote).length === 1;
+    });
+  }
+
+  function updateInputUI(onListenBlocked) {
+    elements.findNoteInputs?.forEach((btn) => {
+      const isListen = btn.dataset.findInput === FIND_INPUT.LISTEN;
+      const disabled = isListen;
+      btn.disabled = disabled;
+      if (disabled && btn.dataset.findInput === getInputMode()) {
+        onListenBlocked?.();
+      }
+
+      const isActive = !disabled && btn.dataset.findInput === getInputMode();
+      btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-pressed', String(isActive));
+    });
+
+    if (elements.findNoteMicStatus) {
+      elements.findNoteMicStatus.textContent = '';
+    }
+
+    if (elements.findNoteRecalibrateBtn) {
+      elements.findNoteRecalibrateBtn.hidden = true;
+    }
+
+    updateStringToggleUI();
+  }
+
+  function updateVariantUI() {
+    const findNote = getFindNote();
+    elements.findNoteVariants?.forEach((btn) => {
+      const isActive = btn.dataset.findVariant === findNote.variant;
+      btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-pressed', String(isActive));
+    });
+  }
+
+  function refreshUI({ now = performance.now(), skipLayoutSync = false } = {}) {
+    const findNote = getFindNote();
+    if (!findNote.targetPitchClass) {
+      syncPauseUI();
+      return;
+    }
+
+    if (!skipLayoutSync) {
+      syncInputRules();
+      syncLayout?.();
+    }
+
+    const capacity = estimateHistoryCapacity();
+    pruneExpiredHistory(findNote, now, capacity);
+    elements.findNoteTarget.innerHTML = buildTaskPanelHtml(findNote, now, { capacity });
+    syncStringHighlight();
+    syncPauseUI();
+    stats.syncStatsControls();
+
+    if (isPaused()) {
+      return;
+    }
+
+    const progress = buildProgressText(findNote);
+    if (progress) {
+      elements.findNoteProgress.hidden = false;
+      elements.findNoteProgress.textContent = progress;
+    } else {
+      elements.findNoteProgress.hidden = true;
+      elements.findNoteProgress.textContent = '';
+    }
+  }
+
+  function restoreMarks() {
+    const findNote = getFindNote();
+    if (
+      findNote.variant !== FIND_VARIANTS.ALL ||
+      !findNote.targetPitchClass ||
+      findNote.completed
+    ) {
+      return;
+    }
+
+    for (const key of findNote.foundPositions) {
+      const [string, fret] = key.split('-').map(Number);
+      elements.fretboardContainer.markFindNotePosition?.(
+        string,
+        fret,
+        true,
+        findNote.targetPitchClass
+      );
+    }
+
+    for (const key of findNote.wrongPositions) {
+      if (findNote.foundPositions.has(key)) continue;
+      const [string, fret] = key.split('-').map(Number);
+      elements.fretboardContainer.markFindNotePosition?.(
+        string,
+        fret,
+        false,
+        findNote.targetPitchClass
+      );
+    }
+  }
+
+  function startNewRound({ resetHistory = false } = {}) {
+    syncInputRules();
+    if (resetHistory) {
+      stopHistoryFade();
+      resetFindNoteHistory(getFindNote());
+    }
+    discardFindNoteStatsTask();
+    startRound(getFindNote());
+    clearBoard();
+    refreshUI();
+    void stats.prepareStatsForPicking().then(() => {
+      stats.syncStatsTask();
+    });
+  }
+
+  return {
+    isPaused,
+    setPaused,
+    stopHistoryFade,
+    startHistoryFade,
+    clearBoard,
+    updateInputUI,
+    updateStringToggleUI,
+    updateVariantUI,
+    refreshUI,
+    restoreMarks,
+    startNewRound,
+    usesMultiPositionTask: () => usesMultiPositionTask(getFindNote()),
+  };
+}
+
+
+// ----- js/mode-find-note-attempts.js -----
+
+/**
+ * @module mode-find-note-attempts
+ * @description Обработка попыток и статистики в режиме «Найди ноту».
+ * @depends config, find-note, find-note-stats
+ */
+
+function createFindNoteAttempts({
+  elements,
+  getFindNote,
+  getInputMode,
+  stats,
+  ui,
+}) {
+  function advanceToNextTarget(result) {
+    const findNote = getFindNote();
+    if (result.roundComplete) {
+      findNote.completed = false;
+      findNote.targetStringIndex = null;
+    }
+
+    if (result.roundComplete || result.needsNextTarget) {
+      pickTarget(findNote);
+      stats.syncStatsTask();
+    }
+  }
+
+  async function afterStatsSaved(result) {
+    await stats.refreshStatsPanelAfterSave();
+    if (result) {
+      advanceToNextTarget(result);
+      ui.refreshUI();
+    }
+  }
+
+  async function afterPartialStatsSaved() {
+    await stats.refreshStatsPanelAfterSave();
+    stats.syncStatsTask();
+    ui.refreshUI();
+  }
+
+  function finishSuccess(result) {
+    const findNote = getFindNote();
+    if (shouldCollectFindNoteStats(getInputMode(), findNote.variant)) {
+      void completeFindNoteStatsTask().then(() => afterStatsSaved(result));
+      return;
+    }
+
+    advanceToNextTarget(result);
+    ui.refreshUI();
+  }
+
+  function applyResult(result, detail) {
+    const findNote = getFindNote();
+    const multiPositionTask = ui.usesMultiPositionTask();
+
+    switch (result.kind) {
+      case 'ignored':
+        return;
+
+      case 'wrong': {
+        recordFindNoteStatsError();
+        const wrongFade = { fadeMs: FIND_NOTE_FADE_WRONG_MS };
+        if (multiPositionTask) {
+          const key = positionKey(detail.string, detail.fret);
+          elements.fretboardContainer.markFindNotePosition?.(
+            detail.string,
+            detail.fret,
+            false,
+            findNote.targetPitchClass,
+            {
+              ...wrongFade,
+              onFadeComplete: () => findNote.wrongPositions.delete(key),
+            }
+          );
+        } else {
+          elements.fretboardContainer.showFindNoteResult?.(
+            detail.cx,
+            detail.cy,
+            false,
+            findNote.targetPitchClass,
+            wrongFade
+          );
+        }
+        break;
+      }
+
+      case 'wrong-string': {
+        recordFindNoteStatsError();
+        elements.fretboardContainer.markFindNotePosition?.(
+          detail.string,
+          detail.fret,
+          false,
+          findNote.targetPitchClass,
+          { fadeMs: FIND_NOTE_FADE_WRONG_MS }
+        );
+        break;
+      }
+
+      case 'correct':
+        elements.fretboardContainer.markFindNotePosition?.(
+          detail.string,
+          detail.fret,
+          true,
+          findNote.targetPitchClass
+        );
+        if (
+          shouldCollectFindNoteStats(getInputMode(), findNote.variant) &&
+          findNote.variant === FIND_VARIANTS.ANY &&
+          findNote.requireTargetString
+        ) {
+          void completeFindNoteStatsTask({ position: detail }).then(() => afterPartialStatsSaved());
+        }
+        break;
+
+      case 'string-complete': {
+        const completedPitchClass = result.completedPitchClass ?? findNote.targetPitchClass;
+        const correctFade = { fadeMs: FIND_NOTE_FADE_CORRECT_MS };
+
+        if (findNote.variant === FIND_VARIANTS.ALL) {
+          elements.fretboardContainer.markFindNotePosition?.(
+            detail.string,
+            detail.fret,
+            true,
+            completedPitchClass
+          );
+          elements.fretboardContainer.fadeOutAllFindNoteMarks?.(FIND_NOTE_FADE_CORRECT_MS);
+        } else if (findNote.requireTargetString) {
+          elements.fretboardContainer.markFindNotePosition?.(
+            detail.string,
+            detail.fret,
+            true,
+            completedPitchClass
+          );
+          elements.fretboardContainer.fadeOutAllFindNoteMarks?.(FIND_NOTE_FADE_CORRECT_MS);
+        } else {
+          elements.fretboardContainer.showFindNoteResult?.(
+            detail.cx,
+            detail.cy,
+            true,
+            completedPitchClass,
+            correctFade
+          );
+        }
+
+        pushFindNoteHistory(findNote, completedPitchClass, FIND_NOTE_FADE_CORRECT_MS);
+        findNote.foundPositions.clear();
+        findNote.wrongPositions.clear();
+        ui.startHistoryFade();
+        finishSuccess(result);
+        break;
+      }
+    }
+
+    if (result.kind !== 'string-complete') {
+      ui.refreshUI();
+    }
+  }
+
+  return {
+    applyResult,
+  };
+}
+
+
+// ----- js/mode-find-note-handlers.js -----
+
+/**
+ * @module mode-find-note-handlers
+ * @description Композиция UI и обработки попыток в режиме «Найди ноту».
+ * @depends find-note, mode-find-note-ui, mode-find-note-attempts
+ */
+
+function createFindNoteHandlers({ elements, getFindNote, getInputMode, stats, syncLayout }) {
+  const ui = createFindNoteUI({
+    elements,
+    getFindNote,
+    getInputMode,
+    stats,
+    syncLayout,
+  });
+
+  const attempts = createFindNoteAttempts({
+    elements,
+    getFindNote,
+    getInputMode,
+    stats,
+    ui,
+  });
+
+  return {
+    isPaused: ui.isPaused,
+    setPaused: ui.setPaused,
+    stopHistoryFade: ui.stopHistoryFade,
+    clearBoard: ui.clearBoard,
+    applyResult: attempts.applyResult,
+    updateInputUI: ui.updateInputUI,
+    updateStringToggleUI: ui.updateStringToggleUI,
+    updateVariantUI: ui.updateVariantUI,
+    refreshUI: ui.refreshUI,
+    restoreMarks: ui.restoreMarks,
+    startNewRound: ui.startNewRound,
+    evaluateAttempt: (detail) => evaluateAttempt(getFindNote(), detail),
+  };
+}
+
+
+// ----- js/mode-find-note.js -----
+
+/**
+ * @module mode-find-note
+ * @description Режим «Найди ноту» — mouse-режим, пауза, статистика.
+ * @depends config, find-note, mode-find-note-stats, mode-find-note-handlers
+ */
+
+function createFindNoteMode(deps) {
+  const { elements, syncLayout } = deps;
+
+  const findNote = createFindNoteState();
+  let findInputMode = FIND_INPUT.MOUSE;
+  let controlsBound = false;
+
+  const stats = createFindNoteStatsController({
+    elements,
+    getFindNote: () => findNote,
+    getInputMode: () => findInputMode,
+  });
+
+  const handlers = createFindNoteHandlers({
+    elements,
+    getFindNote: () => findNote,
+    getInputMode: () => findInputMode,
+    stats,
+    syncLayout,
+  });
+
+  function setInputMode(mode) {
+    if (mode === FIND_INPUT.LISTEN) return;
+    if (findInputMode === mode) return;
+    findInputMode = mode;
+    handlers.updateInputUI(() => {
+      findInputMode = FIND_INPUT.MOUSE;
+    });
+    void stats.syncStatsPanel();
+    handlers.startNewRound({ resetHistory: true });
+  }
+
+  function setVariant(variant) {
+    if (findNote.variant === variant) return;
+    findNote.variant = variant;
+    elements.fretboardContainer.dataset.findVariant = variant;
+    if (variant === FIND_VARIANTS.ALL && findInputMode === FIND_INPUT.LISTEN) {
+      findInputMode = FIND_INPUT.MOUSE;
+    }
+    handlers.updateVariantUI();
+    handlers.updateInputUI(() => {
+      findInputMode = FIND_INPUT.MOUSE;
+    });
+    void stats.syncStatsPanel();
+    handlers.startNewRound({ resetHistory: true });
+  }
+
+  function bindControls() {
+    elements.findNoteInputs?.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        if (btn.disabled) return;
+        setInputMode(btn.dataset.findInput);
+      });
+    });
+
+    elements.findNoteVariants?.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        setVariant(btn.dataset.findVariant);
+      });
+    });
+
+    elements.findNoteStringToggles?.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const stringIndex = Number(btn.dataset.stringIndex);
+        if (!toggleStringEnabled(findNote, stringIndex)) return;
+        handlers.updateStringToggleUI();
+        handlers.startNewRound({ resetHistory: false });
+      });
+    });
+
+    elements.findNotePauseBtn?.addEventListener('click', () => {
+      handlers.setPaused(!handlers.isPaused());
+    });
+
+    elements.findNoteStatsResetBtn?.addEventListener('click', () => {
+      void stats.resetStats().then(() => {
+        handlers.refreshUI();
+      });
+    });
+
+    elements.findNoteStatsHeatmapBtn?.addEventListener('click', () => {
+      void stats.toggleStatsHeatmapPanel();
+    });
+  }
+
+  return {
+    getState: () => findNote,
+    getInputMode: () => findInputMode,
+
+    enter() {
+      if (!controlsBound) {
+        bindControls();
+        controlsBound = true;
+      }
+
+      stats.initStatsLogControls();
+      stats.onEnter();
+
+      findNote.variant = FIND_VARIANTS.ANY;
+      elements.findNotePanel.hidden = false;
+      elements.fretboardContainer.dataset.findVariant = findNote.variant;
+      findNote.requireTargetString = findNote.variant === FIND_VARIANTS.ANY;
+      handlers.updateInputUI(() => {
+        findInputMode = FIND_INPUT.MOUSE;
+      });
+      handlers.updateVariantUI();
+      handlers.setPaused(false);
+      handlers.startNewRound({ resetHistory: true });
+    },
+
+    leave() {
+      handlers.stopHistoryFade();
+      stats.onLeave();
+      handlers.setPaused(false);
+      findNote.requireTargetString = false;
+      resetFindNoteHistory(findNote);
+      startRound(findNote);
+      handlers.clearBoard();
+      elements.fretboardContainer.setFindNoteTargetString?.(null);
+      elements.findNotePanel.hidden = true;
+      document.body.classList.remove('find-note-paused');
+    },
+
+    onFretClick(detail) {
+      if (findInputMode !== FIND_INPUT.MOUSE || handlers.isPaused()) return;
+      const result = handlers.evaluateAttempt(detail);
+      handlers.applyResult(result, detail);
+    },
+
+    onOutsideClick() {
+      if (findNote.variant === FIND_VARIANTS.ANY) {
+        elements.fretboardContainer.clearGuess?.();
+      }
+    },
+
+    restoreMarks: handlers.restoreMarks,
+
+    simulateClick(string, fret) {
+      const detail = elements.fretboardContainer.getCellDetail?.(string, fret);
+      if (!detail) return { error: 'no-cell', string, fret };
+      const result = handlers.evaluateAttempt(detail);
+      handlers.applyResult(result, detail);
+      return { kind: result.kind, detail };
+    },
+  };
+}
+
+
+// ----- js/test-hooks-stub.js -----
+
+/**
+ * @module test-hooks-stub
+ * @description No-op заглушка для prod-сборки (без test API).
+ * @depends none
+ */
+
+function installTestHooks() {}
+
+
+// ----- js/app.js -----
+
+/**
+ * @module app
+ * @description Тонкий оркестратор: boot, mode bar, wiring.
+ * @depends config, version, ui-strings, fretboard-view, note-chip, persistence, mode-fret-note, mode-note-frets, mode-find-note, test-hooks
+ */
+
+const state = {
+  activeMode: MODES.FRET_NOTE,
+};
+
+const elements = {
+  fretboardContainer: document.getElementById('fretboard-container'),
+  selectionPanel: document.getElementById('selection-panel'),
+  notePalettePanel: document.getElementById('note-palette-panel'),
+  findNotePanel: document.getElementById('find-note-panel'),
+  findNoteSessionNotice: document.getElementById('find-note-session-notice'),
+  findNoteTarget: document.getElementById('find-note-target'),
+  findNoteProgress: document.getElementById('find-note-progress'),
+  findNotePauseBtn: document.getElementById('find-note-pause-btn'),
+  findNoteInputs: document.querySelectorAll('.find-note-input'),
+  findNoteVariants: document.querySelectorAll('.find-note-variant'),
+  findNoteStringToggles: document.querySelectorAll('.find-note-string-toggle'),
+  findNoteStatsResetBtn: document.getElementById('find-note-stats-reset-btn'),
+  findNoteStatsPanel: document.getElementById('find-note-stats-panel'),
+  findNoteStatsFretboard: document.getElementById('find-note-stats-fretboard'),
+  findNoteDebugLogBtn: document.getElementById('find-note-debug-log-btn'),
+  findNoteDebugLogPanel: document.getElementById('find-note-debug-log-panel'),
+  findNoteStatsHeatmapBtn: document.getElementById('find-note-stats-heatmap-btn'),
+  findNoteMicStatus: document.getElementById('find-note-mic-status'),
+  findNoteRecalibrateBtn: document.getElementById('find-note-recalibrate-btn'),
+  detailNote: document.getElementById('detail-note'),
+  detailOctave: document.getElementById('detail-octave'),
+  detailPosition: document.getElementById('detail-position'),
+  staffContainer: document.getElementById('staff-container'),
+  showAllNotesBtn: document.getElementById('show-all-notes-btn'),
+  notePalette: document.getElementById('note-palette'),
+  appVersion: document.getElementById('app-version'),
+  modePills: document.querySelectorAll('.mode-pill'),
+  fretboardSection: document.querySelector('.fretboard-section'),
+};
+
+let modes;
+
+function renderFretboardView() {
+  renderFretboard(GUITAR, elements.fretboardContainer, { interactive: true });
+  elements.fretboardContainer.dataset.mode = state.activeMode;
+  modes?.[MODES.FIND_NOTE]?.restoreMarks?.();
+}
+
+modes = {
+  [MODES.FRET_NOTE]: createFretNoteMode({ elements }),
+  [MODES.NOTE_FRETS]: createNoteFretsMode({ elements }),
+  [MODES.FIND_NOTE]: createFindNoteMode({
+    elements,
+    renderFretboardView,
+    syncLayout: () => syncNoteChipWidth(elements.fretboardSection),
+  }),
+};
+
+let currentMode = modes[MODES.FRET_NOTE];
+
+function applyMode(mode) {
+  if (currentMode?.leave) {
+    currentMode.leave();
+  }
+
+  state.activeMode = mode;
+  currentMode = modes[mode] ?? modes[MODES.FRET_NOTE];
+
+  elements.selectionPanel.hidden = true;
+  elements.notePalettePanel.hidden = true;
+  elements.findNotePanel.hidden = true;
+  elements.fretboardContainer.dataset.mode = mode;
+  elements.fretboardContainer.setFindNoteTargetString?.(null);
+
+  elements.modePills.forEach((pill) => {
+    const isActive = pill.dataset.mode === mode;
+    pill.classList.toggle('active', isActive);
+    pill.setAttribute('aria-pressed', String(isActive));
+  });
+
+  renderFretboardView();
+  syncNoteChipWidth(elements.fretboardSection);
+  currentMode.enter?.();
+}
+
+function setMode(mode) {
+  applyMode(mode);
+}
+
+function initModeBar() {
+  elements.modePills.forEach((pill) => {
+    pill.addEventListener('click', () => {
+      if (pill.disabled) return;
+      setMode(pill.dataset.mode);
+    });
+  });
+
+  applyMode(MODES.FRET_NOTE);
+}
+
+function showBootError(message) {
+  if (!elements.fretboardContainer) return;
+  elements.fretboardContainer.innerHTML = `
+    <div class="boot-error">
+      <p><strong>${UI.bootErrorTitle}</strong></p>
+      <p>${message}</p>
+    </div>
+  `;
+}
+
+function initOutsideClick() {
+  document.addEventListener('pointerdown', (event) => {
+    if (elements.fretboardSection?.contains(event.target)) return;
+    if (event.target.closest('.mode-bar')) return;
+    currentMode.onOutsideClick?.();
+  });
+}
+
+function initFretboardEvents() {
+  elements.fretboardContainer.addEventListener('fret-click', (event) => {
+    currentMode.onFretClick?.(event.detail);
+  });
+}
+
+async function init() {
+  if (!elements.fretboardContainer) {
+    console.error('Missing #fretboard-container');
+    return;
+  }
+
+  try {
+    if (elements.appVersion) {
+      elements.appVersion.textContent = `v${APP_VERSION}`;
+    }
+
+    if (elements.findNoteSessionNotice) {
+      elements.findNoteSessionNotice.textContent = UI.findNoteSessionNotice;
+    }
+
+    await loadAppData();
+
+    initModeBar();
+    initOutsideClick();
+    initFretboardEvents();
+
+    window.addEventListener('resize', () => syncNoteChipWidth(elements.fretboardSection));
+
+    elements.showAllNotesBtn?.addEventListener('click', () => {
+      modes[MODES.NOTE_FRETS].toggleShowAll?.();
+    });
+
+    installTestHooks(state, { findNote: modes[MODES.FIND_NOTE] });
+    window.__MMA_BOOT = { ok: true, version: APP_VERSION };
+  } catch (err) {
+    console.error(err);
+    showBootError(err.message || 'Ошибка инициализации');
+    window.__MMA_BOOT = { ok: false, error: String(err) };
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  void init();
+}
+
+})();
+  </script>
+</body>
+</html>
