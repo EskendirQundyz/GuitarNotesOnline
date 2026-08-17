@@ -2146,7 +2146,7 @@ body.find-note-paused #guess-note-palette {
   </main>
 
   <script>
-/* GuitarNotes v1.10.0 — single-file bundle (auto-generated, do not edit) */
+/* GuitarNotes v1.10.1 — single-file bundle (auto-generated, do not edit) */
 (function () {
 "use strict";
 
@@ -2225,7 +2225,7 @@ const OPEN_STRING_FRET_LABEL = 'open';
 
 // ----- js/version.js -----
 
-const APP_VERSION = '1.10.0';
+const APP_VERSION = '1.10.1';
 
 
 // ----- js/ui-strings.js -----
@@ -7436,6 +7436,15 @@ function createHitCellFactory({
     cell.addEventListener('mouseenter', () => {
       const mode = container.dataset.mode || 'fret-note';
       if (
+        (mode === 'find-note' || mode === 'guess-note') &&
+        container.isTrainerStringEnabled &&
+        !container.isTrainerStringEnabled(string)
+      ) {
+        selection.hideHover();
+        return;
+      }
+
+      if (
         mode === 'find-note' &&
         container.dataset.findVariant === 'all' &&
         findNoteMarks.isFindNoteMarkCorrect(string, fret)
@@ -7544,6 +7553,8 @@ function attachFretboardInteraction({
   clearStringVisualState,
 }) {
   let dotR = tapDotR;
+  /** @type {Set<number> | null} null — все струны активны (не тренажёр или сброс) */
+  let trainerEnabledStrings = null;
 
   function setTapDotRadius(r) {
     dotR = r;
@@ -7614,16 +7625,23 @@ function attachFretboardInteraction({
     if (container.dataset.mode !== expectedMode || !Array.isArray(enabledStrings)) {
       clearStringVisualState?.();
       delete container.dataset.findNoteTargetString;
+      trainerEnabledStrings = null;
       return false;
     }
 
     setDimDisabledLanes?.(dimLanes);
 
     const enabled = new Set(enabledStrings);
+    trainerEnabledStrings = enabled;
     setDisabledStringMask?.(
       Array.from({ length: stringCount }, (_, index) => (enabled.has(index) ? 0 : 1))
     );
     return true;
+  }
+
+  function isTrainerStringEnabled(stringIndex) {
+    if (trainerEnabledStrings === null) return true;
+    return trainerEnabledStrings.has(stringIndex);
   }
 
   function setFindNoteStringVisuals(payload = null) {
@@ -7693,6 +7711,7 @@ function attachFretboardInteraction({
     getCellDetail,
     clearPitchHighlights: highlights.clearMatches,
     setTapDotRadius,
+    isTrainerStringEnabled,
   };
 }
 
@@ -7709,29 +7728,41 @@ let resizeObserver = null;
 let activeStage = null;
 
 function attachBoardCursor(wrapper, container, getStage, interactive) {
-  if (!interactive) {
-    wrapper.style.cursor = 'default';
-    return;
-  }
-
   function updateCursor(event) {
     const stage = getStage();
     if (!stage) return;
+
+    const trainerMode =
+      container?.dataset?.mode === 'find-note' || container?.dataset?.mode === 'guess-note';
+
+    if (!interactive && !trainerMode) {
+      wrapper.style.cursor = 'default';
+      return;
+    }
 
     const rect = wrapper.getBoundingClientRect();
     const scale = rect.width ? stage.view.cssWidth / rect.width : 1;
     const x = (event.clientX - rect.left) * scale;
     const y = (event.clientY - rect.top) * scale;
 
-    if (
-      (container?.dataset?.mode === 'find-note' || container?.dataset?.mode === 'guess-note') &&
-      stringLabelRowAt(stage.L, stage.geom.SPEC.strings.length, x, y) >= 0
-    ) {
+    if (trainerMode && stringLabelRowAt(stage.L, stage.geom.SPEC.strings.length, x, y) >= 0) {
       wrapper.style.cursor = 'pointer';
       return;
     }
 
-    wrapper.style.cursor = isPointOnBoard(stage.L, x, y) ? 'pointer' : 'default';
+    if (isPointOnBoard(stage.L, x, y)) {
+      if (trainerMode) {
+        const row = stringRowAt(stage.L, stage.geom, x, y);
+        const enabled =
+          row < 0 || container.isTrainerStringEnabled?.(row) !== false;
+        wrapper.style.cursor = enabled ? 'pointer' : 'default';
+        return;
+      }
+      wrapper.style.cursor = 'pointer';
+      return;
+    }
+
+    wrapper.style.cursor = 'default';
   }
 
   wrapper.addEventListener('pointermove', updateCursor);
@@ -7947,6 +7978,7 @@ function renderFretboard(guitar, container, options = {}) {
   container.getStringCircleAlpha = stage.getStringCircleAlpha;
   container.updateStatsHeatmap = interaction.renderStatsHeatmap;
   container.getStringHoverFocus = stage.getStringHoverFocus;
+  container.isTrainerStringEnabled = interaction.isTrainerStringEnabled;
 
   return svg;
 }
