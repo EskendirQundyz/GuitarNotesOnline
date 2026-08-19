@@ -5746,6 +5746,9 @@ function measureNoteChipContentWidth() {
   return Math.ceil(max);
 }
 
+// Layout width at which palette chips use the legacy base size (75px / 13px).
+const NOTE_CHIP_BASE_LAYOUT_WIDTH = 1252;
+
 function measureFretboardDisplayScale(section) {
   const container =
     section?.querySelector?.('#fretboard-container') ??
@@ -5755,21 +5758,26 @@ function measureFretboardDisplayScale(section) {
   const svg = container.querySelector('.fretboard-canvas-stage svg.fretboard-overlay');
   const canvas = container.querySelector('canvas.fretboard-canvas');
   const target = svg ?? canvas;
-  if (!target) return 1;
 
-  const layoutW = svg?.viewBox?.baseVal?.width ?? container.clientWidth;
-  const layoutH = svg?.viewBox?.baseVal?.height ?? 0;
-  if (!layoutW) return 1;
+  const layoutW = svg?.viewBox?.baseVal?.width ?? container.clientWidth ?? 0;
 
-  const rect = target.getBoundingClientRect();
-  if (rect.width <= 0) return 1;
-
-  const scaleX = rect.width / layoutW;
-  if (layoutH > 0 && rect.height > 0) {
-    return (scaleX + rect.height / layoutH) / 2;
+  let displayWidth = 0;
+  if (target) {
+    const rect = target.getBoundingClientRect();
+    if (rect.width > 0) displayWidth = rect.width;
   }
 
-  return scaleX;
+  if (!displayWidth && layoutW > 0) {
+    displayWidth = layoutW;
+  }
+
+  if (!displayWidth) return 1;
+
+  const zoomScale = layoutW > 0 ? displayWidth / layoutW : 1;
+  const layoutScale =
+    layoutW > 0 ? Math.min(1, layoutW / NOTE_CHIP_BASE_LAYOUT_WIDTH) : 1;
+
+  return zoomScale * layoutScale;
 }
 
 let viewportSyncBound = false;
