@@ -42,6 +42,11 @@
 
   --bar-h: 48px;
   --fretboard-frame-gap: clamp(8px, 1.4vh, 16px);
+  --fret-range-track-height: 9px;
+  --fret-range-gap-below: calc(var(--fret-range-track-height) * 1.5);
+  --fret-range-handle-size: 44px;
+  --fret-range-handle-thumb-w: 6px;
+  --fret-range-handle-thumb-h: 12px;
   --find-note-board-dim: 0.58;
   --find-note-history-gap: 12px;
   --staff-frame-width: 296px;
@@ -333,7 +338,12 @@ body.log-panel-open .stage {
   left: var(--fret-range-board-left, 0);
   width: var(--fret-range-board-width, 100%);
   top: 100%;
-  margin-top: 8px;
+  /* Dock stays at --fretboard-frame-gap; lift strip so 1.5× track height sits above the divider */
+  margin-top: calc(
+    var(--fretboard-frame-gap)
+    - var(--fret-range-track-height) * var(--fret-range-scale, 1)
+    - var(--fret-range-gap-below) * var(--fret-range-scale, 1)
+  );
   pointer-events: auto;
   touch-action: none;
   user-select: none;
@@ -347,7 +357,7 @@ body.log-panel-open .stage {
 
 .find-note-fret-range-track {
   position: relative;
-  height: 9px;
+  height: calc(var(--fret-range-track-height) * var(--fret-range-scale, 1));
   border-radius: 999px;
   background: linear-gradient(180deg, rgba(120, 113, 108, 0.14) 0%, rgba(120, 113, 108, 0.24) 100%);
   box-shadow:
@@ -376,7 +386,7 @@ body.log-panel-open .stage {
 }
 
 .find-note-fret-range-zone--active {
-  border-radius: 3px;
+  border-radius: calc(3px * var(--fret-range-scale, 1));
   background: var(--fret-range-active-gradient, linear-gradient(90deg, #2e6868 35%, #2ebe94 70%, #a6ffd6 100%));
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.42),
@@ -398,10 +408,10 @@ body.log-panel-open .stage {
 .find-note-fret-range-handle {
   position: absolute;
   top: 50%;
-  width: 44px;
-  height: 44px;
-  margin-top: -22px;
-  margin-left: -22px;
+  width: calc(var(--fret-range-handle-size) * var(--fret-range-scale, 1));
+  height: calc(var(--fret-range-handle-size) * var(--fret-range-scale, 1));
+  margin-top: calc(var(--fret-range-handle-size) * var(--fret-range-scale, 1) / -2);
+  margin-left: calc(var(--fret-range-handle-size) * var(--fret-range-scale, 1) / -2);
   padding: 0;
   border: none;
   border-radius: 0;
@@ -420,11 +430,13 @@ body.log-panel-open .stage {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 6px;
-  height: 12px;
-  margin: -6px 0 0 -3px;
-  border: 1px solid var(--fret-range-accent, var(--accent));
-  border-radius: 3px;
+  width: calc(var(--fret-range-handle-thumb-w) * var(--fret-range-scale, 1));
+  height: calc(var(--fret-range-handle-thumb-h) * var(--fret-range-scale, 1));
+  margin:
+    calc(var(--fret-range-handle-thumb-h) * var(--fret-range-scale, 1) / -2) 0
+    0 calc(var(--fret-range-handle-thumb-w) * var(--fret-range-scale, 1) / -2);
+  border: calc(1px * var(--fret-range-scale, 1)) solid var(--fret-range-accent, var(--accent));
+  border-radius: calc(3px * var(--fret-range-scale, 1));
   background: linear-gradient(180deg, #ffffff 0%, #f7f5f2 48%, #ebe8e4 100%);
   box-shadow:
     0 1px 2px rgba(28, 25, 23, 0.18),
@@ -438,10 +450,12 @@ body.log-panel-open .stage {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 1px;
-  height: 5px;
-  margin: -2.5px 0 0 -0.5px;
-  border-radius: 1px;
+  width: calc(1px * var(--fret-range-scale, 1));
+  height: calc(5px * var(--fret-range-scale, 1));
+  margin:
+    calc(5px * var(--fret-range-scale, 1) / -2) 0
+    0 calc(1px * var(--fret-range-scale, 1) / -2);
+  border-radius: calc(1px * var(--fret-range-scale, 1));
   background: var(--fret-range-accent, var(--accent));
   opacity: 0.72;
   pointer-events: none;
@@ -991,13 +1005,6 @@ body.app-ready .open-online-banner {
 
 .guess-note-controls > * {
   pointer-events: auto;
-}
-
-/* Reserve room so the 12-note row wraps instead of sliding under the
-   absolute-positioned pause/log controls at the guaranteed-fit minimum width. */
-#guess-note-palette {
-  padding-right: calc(var(--fretboard-edge-inset-right) + 104px);
-  box-sizing: border-box;
 }
 
 .note-palette-panel[hidden] {
@@ -1821,12 +1828,16 @@ body.find-note-paused #guess-note-palette {
   padding: 8px 0 4px;
 }
 
+.note-palette > .note-palette-btn {
+  width: calc(var(--note-chip-width, 72px) * var(--note-chip-scale, 1));
+  font-size: calc(13px * var(--note-chip-scale, 1));
+}
+
 .note-palette-btn {
   appearance: none;
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 6px 8px;
-  width: var(--note-chip-width, 72px);
   min-width: 0;
   box-sizing: border-box;
   font: inherit;
@@ -1901,10 +1912,10 @@ body.find-note-paused #guess-note-palette {
 }
 
 @media (max-width: 600px) {
-  .note-palette-btn {
-    width: var(--note-chip-width, 72px);
+  .note-palette > .note-palette-btn {
+    width: calc(var(--note-chip-width, 72px) * var(--note-chip-scale, 1));
     min-width: 0;
-    font-size: 12px;
+    font-size: calc(12px * var(--note-chip-scale, 1));
   }
 }
   </style>
@@ -2201,7 +2212,7 @@ body.find-note-paused #guess-note-palette {
   </main>
 
   <script>
-/* GuitarNotes v1.13.0 — single-file bundle (auto-generated, do not edit) */
+/* GuitarNotes v1.13.3 — single-file bundle (auto-generated, do not edit) */
 (function () {
 "use strict";
 
@@ -2280,7 +2291,7 @@ const OPEN_STRING_FRET_LABEL = 'open';
 
 // ----- js/version.js -----
 
-const APP_VERSION = '1.13.0';
+const APP_VERSION = '1.13.3';
 
 
 // ----- js/ui-strings.js -----
@@ -4313,6 +4324,39 @@ function createFindNoteFretRangeView({ elements, getRange, getPalette, frets }) 
   const dimRight = elements.findNoteFretRangeDimRight;
   const fretboardContainer = elements.fretboardContainer;
 
+  function fretboardSvg() {
+    return fretboardContainer?.querySelector('.fretboard-canvas-stage svg.fretboard-overlay') ?? null;
+  }
+
+  function measureStripScale(svg, hitLayout, band) {
+    if (!svg || !band?.containerWidth) return 1;
+
+    const layoutW =
+      svg.viewBox?.baseVal?.width ?? hitLayout?.totalWidth ?? hitLayout?.cssWidth ?? band.containerWidth;
+    const layoutH = svg.viewBox?.baseVal?.height ?? hitLayout?.cssHeight ?? 0;
+    if (!layoutW) return 1;
+
+    const svgRect = svg.getBoundingClientRect();
+    if (svgRect.width <= 0) return 1;
+
+    const scaleX = svgRect.width / layoutW;
+    if (layoutH > 0 && svgRect.height > 0) {
+      const scaleY = svgRect.height / layoutH;
+      return (scaleX + scaleY) / 2;
+    }
+
+    return scaleX;
+  }
+
+  function applyStripScale(board, scale) {
+    if (!board) return;
+    board.style.setProperty('--fret-range-scale', String(scale));
+  }
+
+  function clearStripScale(board) {
+    board?.style.removeProperty('--fret-range-scale');
+  }
+
   function boardElement() {
     return fretboardContainer?.closest('.board') ?? null;
   }
@@ -4341,27 +4385,52 @@ function createFindNoteFretRangeView({ elements, getRange, getPalette, frets }) 
       board?.style.removeProperty('--fret-range-accent');
       board?.style.removeProperty('--fret-range-accent-ring');
       board?.style.removeProperty('--fret-range-accent-glow');
+      clearStripScale(board);
       board?.removeAttribute('data-fret-range-palette');
     } else {
       applyPalette();
     }
   }
 
-  function applyBoardBounds(band) {
+  function applyBoardBounds(band, hitLayout) {
     const board = boardElement();
     if (!board || !band.containerWidth) return;
+
+    const svg = fretboardSvg();
+    const layoutW =
+      svg?.viewBox?.baseVal?.width ??
+      hitLayout?.totalWidth ??
+      hitLayout?.cssWidth ??
+      band.containerWidth;
+
+    applyStripScale(board, measureStripScale(svg, hitLayout, band));
+
+    if (svg && layoutW > 0) {
+      const boardRect = board.getBoundingClientRect();
+      const svgRect = svg.getBoundingClientRect();
+      if (boardRect.width > 0 && svgRect.width > 0) {
+        const scale = svgRect.width / layoutW;
+        const stripLeftPx = svgRect.left - boardRect.left + band.boardLeft * scale;
+        const stripWidthPx = band.boardWidth * scale;
+
+        board.style.setProperty('--fret-range-board-left', `${(stripLeftPx / boardRect.width) * 100}%`);
+        board.style.setProperty('--fret-range-board-width', `${(stripWidthPx / boardRect.width) * 100}%`);
+        return;
+      }
+    }
 
     const leftPct = (band.boardLeft / band.containerWidth) * 100;
     const widthPct = (band.boardWidth / band.containerWidth) * 100;
     board.style.setProperty('--fret-range-board-left', `${leftPct}%`);
     board.style.setProperty('--fret-range-board-width', `${widthPct}%`);
+    applyStripScale(board, measureStripScale(fretboardSvg(), hitLayout, band));
   }
 
-  function applyBand(band) {
+  function applyBand(band, hitLayout) {
     if (!band) return;
 
     applyPalette();
-    applyBoardBounds(band);
+    applyBoardBounds(band, hitLayout);
 
     const toPercent = (value) => `${(value / band.boardWidth) * 100}%`;
     const hasDim = band.inactiveLeftWidth > 0 || band.inactiveRightWidth > 0;
@@ -4416,7 +4485,7 @@ function createFindNoteFretRangeView({ elements, getRange, getPalette, frets }) 
     if (!hitLayout || !strip || strip.hidden) return;
 
     const band = fretSpanPx(hitLayout, getRange(), frets);
-    applyBand(band);
+    applyBand(band, hitLayout);
     syncHitCells(band.range);
   }
 
@@ -5664,7 +5733,7 @@ function measureNoteChipContentWidth() {
   probe.type = 'button';
   probe.className = 'note-palette-btn';
   probe.style.cssText =
-    'position:absolute;left:-9999px;top:0;visibility:hidden;pointer-events:none;width:auto;min-width:0;';
+    'position:absolute;left:-9999px;top:0;visibility:hidden;pointer-events:none;width:auto;min-width:0;font-size:13px;';
   document.body.appendChild(probe);
 
   let max = 0;
@@ -5677,13 +5746,55 @@ function measureNoteChipContentWidth() {
   return Math.ceil(max);
 }
 
-function syncNoteChipWidth(_section = document.querySelector('.fretboard-section')) {
+function measureFretboardDisplayScale(section) {
+  const container =
+    section?.querySelector?.('#fretboard-container') ??
+    document.getElementById('fretboard-container');
+  if (!container) return 1;
+
+  const svg = container.querySelector('.fretboard-canvas-stage svg.fretboard-overlay');
+  const canvas = container.querySelector('canvas.fretboard-canvas');
+  const target = svg ?? canvas;
+  if (!target) return 1;
+
+  const layoutW = svg?.viewBox?.baseVal?.width ?? container.clientWidth;
+  const layoutH = svg?.viewBox?.baseVal?.height ?? 0;
+  if (!layoutW) return 1;
+
+  const rect = target.getBoundingClientRect();
+  if (rect.width <= 0) return 1;
+
+  const scaleX = rect.width / layoutW;
+  if (layoutH > 0 && rect.height > 0) {
+    return (scaleX + rect.height / layoutH) / 2;
+  }
+
+  return scaleX;
+}
+
+let viewportSyncBound = false;
+
+function bindNoteChipViewportSync(section) {
+  if (viewportSyncBound || typeof window === 'undefined') return;
+  viewportSyncBound = true;
+
+  const sync = () => syncNoteChipWidth(section);
+  window.addEventListener('resize', sync);
+  window.visualViewport?.addEventListener('resize', sync);
+}
+
+function syncNoteChipWidth(section = document.querySelector('.fretboard-section')) {
   if (typeof document === 'undefined') return;
+
+  const host = section ?? document.querySelector('.fretboard-section');
+  bindNoteChipViewportSync(host);
 
   document.documentElement.style.setProperty(
     '--note-chip-width',
     `${measureNoteChipContentWidth()}px`
   );
+
+  host?.style.setProperty('--note-chip-scale', String(measureFretboardDisplayScale(host)));
 }
 
 
@@ -10812,6 +10923,38 @@ function createFindNoteFretRangeController({
 
   let draggingEdge = null;
   let layoutListener = null;
+  let viewportFrame = 0;
+
+  function scheduleStripSync({ withCallbacks = false } = {}) {
+    if (elements.findNoteFretRange?.hidden) return;
+
+    cancelAnimationFrame(viewportFrame);
+    viewportFrame = requestAnimationFrame(() => {
+      viewportFrame = requestAnimationFrame(() => {
+        viewportFrame = 0;
+        view.render(getHitLayout());
+        if (withCallbacks) {
+          syncLayout?.();
+          onLayoutAfterRender?.();
+        }
+      });
+    });
+  }
+
+  function syncViewport() {
+    scheduleStripSync();
+  }
+
+  function bindViewportSync() {
+    window.addEventListener('resize', syncViewport);
+    window.visualViewport?.addEventListener('resize', syncViewport);
+  }
+
+  function unbindViewportSync() {
+    cancelAnimationFrame(viewportFrame);
+    window.removeEventListener('resize', syncViewport);
+    window.visualViewport?.removeEventListener('resize', syncViewport);
+  }
 
   function getHitLayout() {
     return elements.fretboardContainer?.getFretboardHitLayout?.() ?? null;
@@ -10898,10 +11041,12 @@ function createFindNoteFretRangeController({
     view.render(getHitLayout());
     layoutListener = onLayoutChange;
     elements.fretboardContainer.onFretboardLayoutChange = layoutListener;
+    bindViewportSync();
   }
 
   function leave() {
     stopDragging();
+    unbindViewportSync();
     view.setVisible(false);
     if (elements.fretboardContainer.onFretboardLayoutChange === layoutListener) {
       elements.fretboardContainer.onFretboardLayoutChange = null;
