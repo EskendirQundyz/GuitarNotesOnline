@@ -40,10 +40,8 @@
   --radius: 12px;
   --shadow: 0 12px 32px rgba(28, 25, 23, 0.12);
 
-  --bar-h: 52px;
-  --fretboard-anchor-scale: 0.9;
-  --fretboard-anchor-y: calc(100vh / 3 * var(--fretboard-anchor-scale));
-  --fretboard-frame-gap: 32px;
+  --bar-h: 48px;
+  --fretboard-frame-gap: clamp(8px, 1.4vh, 16px);
   --find-note-board-dim: 0.58;
   --find-note-history-gap: 12px;
   --staff-frame-width: 296px;
@@ -72,17 +70,31 @@ html {
 
 html,
 body {
-  min-height: 100%;
+  height: 100%;
 }
 
 body {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   font-family: var(--font);
   background: var(--bg);
   color: var(--ink);
   line-height: 1.45;
+}
+
+/*
+ * Fixed no-scroll shell (v1.13.0): the app fills the viewport with zero
+ * scroll — the bar + fretboard + mode dock + trainer heatmap always fit
+ * on one screen. Opening the debug "log" panel is the one deliberate
+ * exception: it sets `log-panel-open`, which restores normal page scroll.
+ */
+body.log-panel-open {
+  height: auto;
+  min-height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .app-version {
@@ -248,16 +260,21 @@ body {
 
 .stage {
   position: relative;
-  flex: 1 0 auto;
-  min-height: calc(100vh - var(--bar-h));
-  padding: 0 20px;
-  overflow-x: auto;
-  overflow-y: visible;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: calc(100vh - var(--bar-h));
+  padding: 0 14px;
+  overflow: hidden;
   background: radial-gradient(
-    ellipse 58% 46% at 50% calc(var(--fretboard-frame-gap) + 12vw),
+    ellipse 58% 46% at 50% 160px,
     rgba(28, 25, 23, 0.06),
     transparent 72%
   );
+}
+
+body.log-panel-open .stage {
+  height: auto;
+  overflow: visible;
 }
 
 .workspace,
@@ -265,8 +282,7 @@ body {
   position: relative;
   width: 100%;
   max-width: 1680px;
-  min-width: 880px;
-  min-height: calc(100vh - var(--bar-h));
+  min-width: 860px;
   margin: 0 auto;
   padding-top: var(--fretboard-frame-gap);
   --fretboard-edge-inset-right: 0px;
@@ -467,7 +483,7 @@ body {
 }
 
 .dock-pane {
-  min-height: 58px;
+  min-height: 44px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -563,7 +579,7 @@ body {
   right: 0;
   width: 100%;
   margin-top: 0;
-  padding: 4px 0 12px;
+  padding: 3px 0 6px;
   border-top: 1px solid var(--line);
   background: #f1efec;
 }
@@ -583,7 +599,7 @@ body {
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
-  margin-top: 6px;
+  margin-top: 3px;
   padding: 0 var(--fretboard-edge-inset-right) 0 8px;
 }
 
@@ -802,7 +818,7 @@ body.app-ready .open-online-banner {
   position: relative;
   display: inline-block;
   width: 100%;
-  min-width: 960px;
+  min-width: 830px;
   cursor: default;
 }
 
@@ -828,7 +844,7 @@ body.app-ready .open-online-banner {
 .fretboard-container svg.fretboard-overlay {
   display: block;
   width: 100%;
-  min-width: 960px;
+  min-width: 830px;
   height: auto;
 }
 
@@ -977,6 +993,13 @@ body.app-ready .open-online-banner {
   pointer-events: auto;
 }
 
+/* Reserve room so the 12-note row wraps instead of sliding under the
+   absolute-positioned pause/log controls at the guaranteed-fit minimum width. */
+#guess-note-palette {
+  padding-right: calc(var(--fretboard-edge-inset-right) + 104px);
+  box-sizing: border-box;
+}
+
 .note-palette-panel[hidden] {
   display: none;
 }
@@ -1023,9 +1046,9 @@ body.app-ready .open-online-banner {
 }
 
 .find-note-panel {
-  gap: 8px;
+  gap: 4px;
   overflow: visible;
-  padding: 10px 0 12px;
+  padding: 6px 0 8px;
 }
 
 .find-note-panel[hidden] {
@@ -1057,7 +1080,7 @@ body.app-ready .open-online-banner {
 }
 
 .find-note-task-shell {
-  min-height: 76px;
+  min-height: 62px;
 }
 
 .find-note-control-stack {
@@ -1415,11 +1438,11 @@ body.app-ready .open-online-banner {
 }
 
 .find-note-progress:not([hidden]) {
-  margin-top: 8px;
+  margin-top: 4px;
 }
 
 .find-note-mic-status:not(:empty) {
-  margin-top: 8px;
+  margin-top: 4px;
 }
 
 .find-note-debug-log-btn {
@@ -1715,9 +1738,9 @@ body.find-note-paused #guess-note-palette {
 .find-note-listen-panel {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
   width: 100%;
-  margin-top: 10px;
+  margin-top: 4px;
 }
 
 .find-note-listen-panel[hidden] {
@@ -2178,7 +2201,7 @@ body.find-note-paused #guess-note-palette {
   </main>
 
   <script>
-/* GuitarNotes v1.12.0 — single-file bundle (auto-generated, do not edit) */
+/* GuitarNotes v1.13.0 — single-file bundle (auto-generated, do not edit) */
 (function () {
 "use strict";
 
@@ -2257,7 +2280,7 @@ const OPEN_STRING_FRET_LABEL = 'open';
 
 // ----- js/version.js -----
 
-const APP_VERSION = '1.12.0';
+const APP_VERSION = '1.13.0';
 
 
 // ----- js/ui-strings.js -----
@@ -5271,6 +5294,19 @@ function buildLogEmptyHtml() {
 }
 
 /**
+ * v1.13.0: opening any trainer's log panel is the one deliberate exception
+ * to the fixed no-scroll shell — it grows the page and enables normal page
+ * scroll via `body.log-panel-open`. Both Find Fret and Find note panels are
+ * instances created below, so the "any panel open" set lives at module
+ * scope (each instance registers under its own `boundDatasetKey`).
+ */
+const openLogPanelIds = new Set();
+
+function syncScrollableBody() {
+  document.body.classList.toggle('log-panel-open', openLogPanelIds.size > 0);
+}
+
+/**
  * @param {object} options
  * @param {string} options.boundDatasetKey уникальный dataset-флаг, чтобы не навесить listener дважды
  * @param {Function} options.fetchRecords async (filter) => records
@@ -5303,8 +5339,18 @@ function createTrainerLogPanel({
     return panelOpen;
   }
 
+  function setPanelOpen(next) {
+    panelOpen = next;
+    if (next) {
+      openLogPanelIds.add(boundDatasetKey);
+    } else {
+      openLogPanelIds.delete(boundDatasetKey);
+    }
+    syncScrollableBody();
+  }
+
   function close() {
-    panelOpen = false;
+    setPanelOpen(false);
   }
 
   function updateControls({ logButton, logPanel, panelVisible, toolsVisible = true }) {
@@ -5331,7 +5377,7 @@ function createTrainerLogPanel({
   async function toggle({ logButton, logPanel, panelVisible, toolsVisible = true, filter = {} }) {
     if (!panelVisible || !toolsVisible) return false;
 
-    panelOpen = !panelOpen;
+    setPanelOpen(!panelOpen);
     updateControls({ logButton, logPanel, panelVisible, toolsVisible });
 
     if (panelOpen) {
@@ -11726,10 +11772,8 @@ function createGuessNoteMode(deps) {
 /**
  * @module studio-shell
  * @description Studio UI: подпись текущего режима, каталог разделов, отступы рамки грифа.
+ * @depends none
  */
-
-const FRETBOARD_ANCHOR_SCALE = 0.9;
-const MIN_FRAME_GAP_PX = 16;
 
 function createStudioShell({ onModeSelect, onLayoutSync }) {
   const modeCurrent = document.getElementById('mode-current');
@@ -11738,9 +11782,6 @@ function createStudioShell({ onModeSelect, onLayoutSync }) {
   const catalogItems = catalog
     ? Array.from(catalog.querySelectorAll('.catalog-item'))
     : [];
-
-  let frameSyncBound = false;
-  let lastFrameGapPx = null;
 
   function closeCatalog() {
     if (!catalog) return;
@@ -11758,44 +11799,15 @@ function createStudioShell({ onModeSelect, onLayoutSync }) {
     });
   }
 
-  function readBarHeightPx() {
-    const raw = getComputedStyle(document.documentElement).getPropertyValue('--bar-h').trim();
-    const parsed = parseFloat(raw);
-    return Number.isFinite(parsed) ? parsed : 52;
-  }
-
+  /**
+   * v1.13.0: the gap above/below the fretboard is a static CSS `clamp()`
+   * (`--fretboard-frame-gap` in styles.css) — it no longer anchors the
+   * strings at 1/3 of the viewport height, so no JS measurement/resize
+   * wiring is needed. Kept as a callable no-op so existing call sites in
+   * app.js don't need to change; it still notifies the edge-inset sync.
+   */
   function syncFretboardFrameSpacing() {
-    const board = document.querySelector('.board');
-    const workspace = document.querySelector('.fretboard-section');
-    if (!board || !workspace) return;
-
-    // Layout math only — never getBoundingClientRect (scroll would change the gap).
-    const barHeight = readBarHeightPx();
-    const boardHeight = board.offsetHeight;
-    const targetAnchorY = (window.innerHeight / 3) * FRETBOARD_ANCHOR_SCALE;
-    const stringsOffset = boardHeight > 0 ? boardHeight / 2 : 0;
-    const gap = Math.max(MIN_FRAME_GAP_PX, targetAnchorY - stringsOffset - barHeight);
-    const gapPx = Math.round(gap);
-    if (lastFrameGapPx === gapPx) return;
-    lastFrameGapPx = gapPx;
-
-    workspace.style.setProperty('--fretboard-frame-gap', `${gapPx}px`);
     onLayoutSync?.();
-  }
-
-  function initFretboardFrameSpacing() {
-    if (frameSyncBound) return;
-    frameSyncBound = true;
-
-    const board = document.querySelector('.board');
-    syncFretboardFrameSpacing();
-
-    window.addEventListener('resize', syncFretboardFrameSpacing);
-
-    if (board && typeof ResizeObserver !== 'undefined') {
-      const observer = new ResizeObserver(syncFretboardFrameSpacing);
-      observer.observe(board);
-    }
   }
 
   function init() {
@@ -11821,8 +11833,6 @@ function createStudioShell({ onModeSelect, onLayoutSync }) {
     document.addEventListener('keydown', (event) => {
       if (event.key === 'Escape') closeCatalog();
     });
-
-    initFretboardFrameSpacing();
   }
 
   return { init, setModeLabel, syncCatalog, closeCatalog, syncFretboardFrameSpacing };
