@@ -811,8 +811,13 @@ body.app-ready .open-online-banner {
   letter-spacing: 0.02em;
 }
 
-.fretboard-container svg .fret-cell {
+.fretboard-container:not([data-mode='find-note']):not([data-mode='guess-note']) svg .fret-cell {
   cursor: pointer;
+}
+
+.fretboard-container[data-mode='find-note'] svg .fret-cell,
+.fretboard-container[data-mode='guess-note'] svg .fret-cell {
+  cursor: inherit;
 }
 
 .fretboard-container svg .fret-tap-rainbow {
@@ -2146,7 +2151,7 @@ body.find-note-paused #guess-note-palette {
   </main>
 
   <script>
-/* GuitarNotes v1.10.1 — single-file bundle (auto-generated, do not edit) */
+/* GuitarNotes v1.11.0 — single-file bundle (auto-generated, do not edit) */
 (function () {
 "use strict";
 
@@ -2225,7 +2230,7 @@ const OPEN_STRING_FRET_LABEL = 'open';
 
 // ----- js/version.js -----
 
-const APP_VERSION = '1.10.1';
+const APP_VERSION = '1.11.0';
 
 
 // ----- js/ui-strings.js -----
@@ -2695,6 +2700,167 @@ function clampFretToRange(fret, range, frets = GUITAR.frets) {
 }
 
 
+// ----- js/pitch-sensitivity.js -----
+
+/**
+ * @module pitch-sensitivity
+ * @description Адаптивная чувствительность микрофона: профиль уровня на каждую струну.
+ * @depends config
+ */
+
+/**
+ * Абсолютный минимум порога. Микрофон iPad отдаёт сигнал на порядок тише
+ * встроенного микрофона ноутбука, поэтому нижняя граница выбрана с большим запасом.
+ */
+const ABS_MIN_ONSET_RMS = 0.0004;
+const ABS_MIN_RELEASE_RMS = 0.00015;
+
+/** Порог относительно шума — защита от ложных срабатываний в шумной комнате. */
+const ONSET_OVER_FLOOR = 3.5;
+const RELEASE_OVER_FLOOR = 1.8;
+
+/** Порог относительно пика щипка — защита от срабатываний на призвуках. */
+const ONSET_OVER_PEAK = 0.12;
+const RELEASE_OVER_PEAK = 0.04;
+
+/** Реальный щипок обязан проходить порог, каким бы шумным ни был фон. */
+const MAX_ONSET_OF_PEAK = 0.35;
+const RELEASE_OF_ONSET = 0.55;
+
+/** Пик достоверен, только если он заметно выше шума. */
+const MIN_DYNAMIC_RANGE = 2.5;
+
+const FLOOR_DOWN_EASE = 0.1;
+const FLOOR_UP_EASE = 0.0008;
+const PEAK_ATTACK_EASE = 0.5;
+const PEAK_DECAY = 0.9995;
+const MAX_OBSERVATIONS = 1e6;
+
+/** Окно индикатора уровня, когда профиль ещё не набран. */
+const STATIC_METER_FLOOR_DB = -65;
+const STATIC_METER_RANGE_DB = 55;
+const METER_HEADROOM_DB = 3;
+const METER_MIN_SPAN_DB = 24;
+const MIN_METER_RMS = 1e-5;
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function toDb(rms) {
+  return 20 * Math.log10(Math.max(rms, MIN_METER_RMS));
+}
+
+function isPositiveFinite(value) {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0;
+}
+
+function emptyStringProfile() {
+  return { floor: 0, peak: 0, observations: 0 };
+}
+
+function defaultStringSensitivity() {
+  return Array.from({ length: GUITAR.strings }, emptyStringProfile);
+}
+
+function normalizeStringProfile(raw) {
+  if (!raw || typeof raw !== 'object') return emptyStringProfile();
+
+  const floor = isPositiveFinite(raw.floor) ? Math.min(raw.floor, 1) : 0;
+  const peak = isPositiveFinite(raw.peak) ? Math.min(raw.peak, 1) : 0;
+  const observations =
+    typeof raw.observations === 'number' && Number.isFinite(raw.observations)
+      ? clamp(Math.round(raw.observations), 0, MAX_OBSERVATIONS)
+      : 0;
+
+  return { floor, peak: Math.max(peak, floor), observations };
+}
+
+function normalizeStringSensitivity(raw) {
+  if (!Array.isArray(raw)) return defaultStringSensitivity();
+  return Array.from({ length: GUITAR.strings }, (_, index) =>
+    normalizeStringProfile(raw[index])
+  );
+}
+
+/**
+ * Один кадр наблюдения. Шум опускается быстро и поднимается очень медленно,
+ * пик наоборот — растёт мгновенно и затухает за минуты, чтобы профиль пережил паузу.
+ */
+function observeStringLevel(profile, rms) {
+  const current = normalizeStringProfile(profile);
+  if (!Number.isFinite(rms) || rms < 0) return current;
+
+  const seeded = current.observations > 0;
+  const floor = seeded
+    ? rms < current.floor
+      ? current.floor + (rms - current.floor) * FLOOR_DOWN_EASE
+      : current.floor + (rms - current.floor) * FLOOR_UP_EASE
+    : rms;
+
+  const decayed = current.peak * PEAK_DECAY;
+  const peak = rms > decayed ? decayed + (rms - decayed) * PEAK_ATTACK_EASE : decayed;
+
+  return {
+    floor: Math.max(floor, 0),
+    peak: Math.max(peak, floor),
+    observations: Math.min(current.observations + 1, MAX_OBSERVATIONS),
+  };
+}
+
+function hasUsablePeak(profile) {
+  return profile.peak > 0 && profile.peak >= profile.floor * MIN_DYNAMIC_RANGE;
+}
+
+/**
+ * Пороги для `pitch-note-tracker`. Возвращаются всегда: пока пик не измерен,
+ * порог держится на шуме, поэтому тихий вход работает с первой секунды.
+ */
+function stringThresholds(profile) {
+  const current = normalizeStringProfile(profile);
+  const usablePeak = hasUsablePeak(current);
+
+  let onset = Math.max(ABS_MIN_ONSET_RMS, current.floor * ONSET_OVER_FLOOR);
+  if (usablePeak) {
+    onset = Math.max(onset, current.peak * ONSET_OVER_PEAK);
+    onset = Math.min(onset, current.peak * MAX_ONSET_OF_PEAK);
+  }
+  onset = Math.max(onset, ABS_MIN_ONSET_RMS);
+
+  let release = Math.max(ABS_MIN_RELEASE_RMS, current.floor * RELEASE_OVER_FLOOR);
+  if (usablePeak) {
+    release = Math.max(release, current.peak * RELEASE_OVER_PEAK);
+  }
+  release = Math.min(release, onset * RELEASE_OF_ONSET);
+  release = Math.max(release, ABS_MIN_RELEASE_RMS);
+
+  return {
+    minOnsetRms: onset,
+    minReleaseRms: Math.min(release, onset),
+    noiseFloor: Math.max(current.floor, ABS_MIN_RELEASE_RMS),
+    calibrated: usablePeak,
+  };
+}
+
+/**
+ * Уровень для индикатора в диапазоне 0..1. Окно растягивается по измеренным
+ * шуму и пику струны, иначе на тихом входе полоска почти не двигается.
+ */
+function stringMeterLevel(profile, rms) {
+  const current = normalizeStringProfile(profile);
+  const db = toDb(rms);
+
+  if (!hasUsablePeak(current)) {
+    return clamp((db - STATIC_METER_FLOOR_DB) / STATIC_METER_RANGE_DB, 0, 1);
+  }
+
+  const floorDb = toDb(current.floor);
+  const ceilingDb = toDb(current.peak) + METER_HEADROOM_DB;
+  const span = Math.max(METER_MIN_SPAN_DB, ceilingDb - floorDb);
+  return clamp((db - floorDb) / span, 0, 1);
+}
+
+
 // ----- js/app-preferences.js -----
 
 /**
@@ -2720,6 +2886,9 @@ function defaultPreferences() {
     },
     guessNote: {
       enabledStrings: Array.from({ length: GUITAR.strings }, (_, index) => index),
+    },
+    listen: {
+      stringSensitivity: defaultStringSensitivity(),
     },
   };
 }
@@ -2759,6 +2928,12 @@ function normalizeGuessNote(raw) {
   };
 }
 
+function normalizeListen(raw) {
+  return {
+    stringSensitivity: normalizeStringSensitivity(raw?.stringSensitivity),
+  };
+}
+
 function normalizePreferences(raw) {
   const defaults = defaultPreferences();
   if (!raw || typeof raw !== 'object') {
@@ -2769,6 +2944,7 @@ function normalizePreferences(raw) {
     activeMode: MODE_VALUES.has(raw.activeMode) ? raw.activeMode : defaults.activeMode,
     findNote: normalizeFindNote(raw.findNote),
     guessNote: normalizeGuessNote(raw.guessNote),
+    listen: normalizeListen(raw.listen),
   };
 }
 
@@ -2782,6 +2958,7 @@ function mergePreferences(base, patch) {
     ...patch,
     findNote: patch.findNote ? { ...base.findNote, ...patch.findNote } : base.findNote,
     guessNote: patch.guessNote ? { ...base.guessNote, ...patch.guessNote } : base.guessNote,
+    listen: patch.listen ? { ...base?.listen, ...patch.listen } : base?.listen,
   };
 
   return normalizePreferences(merged);
@@ -7620,12 +7797,37 @@ function attachFretboardInteraction({
    * Общая маска отключённых струн. Find Fret дополнительно подсвечивает целевую струну,
    * Find note вместо этого гасит неактивные дорожки (`dimLanes`).
    */
+  function isTrainerStringEnabled(stringIndex) {
+    if (trainerEnabledStrings === null) return true;
+    return trainerEnabledStrings.has(stringIndex);
+  }
+
+  function syncFretCellCursors() {
+    const mode = container.dataset.mode;
+    const trainerMode = mode === 'find-note' || mode === 'guess-note';
+
+    for (const cell of container.querySelectorAll('.fret-cell')) {
+      if (!trainerMode) {
+        cell.style.removeProperty('cursor');
+        continue;
+      }
+
+      const stringIndex = Number(cell.dataset.string);
+      if (!isTrainerStringEnabled(stringIndex)) {
+        cell.style.cursor = 'default';
+      } else {
+        cell.style.removeProperty('cursor');
+      }
+    }
+  }
+
   function applyStringVisuals(payload, { mode: expectedMode, dimLanes }) {
     const enabledStrings = payload?.enabledStrings;
     if (container.dataset.mode !== expectedMode || !Array.isArray(enabledStrings)) {
       clearStringVisualState?.();
       delete container.dataset.findNoteTargetString;
       trainerEnabledStrings = null;
+      syncFretCellCursors();
       return false;
     }
 
@@ -7636,12 +7838,8 @@ function attachFretboardInteraction({
     setDisabledStringMask?.(
       Array.from({ length: stringCount }, (_, index) => (enabled.has(index) ? 0 : 1))
     );
+    syncFretCellCursors();
     return true;
-  }
-
-  function isTrainerStringEnabled(stringIndex) {
-    if (trainerEnabledStrings === null) return true;
-    return trainerEnabledStrings.has(stringIndex);
   }
 
   function setFindNoteStringVisuals(payload = null) {
@@ -7694,6 +7892,7 @@ function attachFretboardInteraction({
       octaveOverlay.onLayoutChange?.();
       trainerTarget.refresh();
       syncPinnedStringHighlight();
+      syncFretCellCursors();
     },
     isOctaveOverlayVisible: octaveOverlay.isVisible,
     showFindNoteResult: findNoteMarks.showFindNoteResult,
@@ -9375,6 +9574,7 @@ function createYinDetector({ sampleRate, bufferSize, threshold = DEFAULT_THRESHO
 const DEFAULTS = {
   minOnsetRms: 0.004,
   minReleaseRms: 0.0018,
+  initialNoiseFloor: 0.002,
   onsetOverFloor: 3.5,
   reattackRatio: 1.8,
   attackSkipMs: 40,
@@ -9398,7 +9598,7 @@ function createNoteTracker(options = {}) {
 
   let state = 'idle';
   let envelope = 0;
-  let noiseFloor = 0.002;
+  let noiseFloor = config.initialNoiseFloor;
   let captureStart = 0;
   let quietSince = null;
   let samples = [];
@@ -9482,13 +9682,35 @@ function createNoteTracker(options = {}) {
   function reset() {
     state = 'idle';
     envelope = 0;
+    noiseFloor = config.initialNoiseFloor;
     samples = [];
     result = null;
     quietSince = null;
     feedback = 'idle';
   }
 
-  return { push, reset };
+  /**
+   * Пороги приходят из `pitch-sensitivity` и меняются при смене целевой струны:
+   * шестая струна звучит громче первой, поэтому общий порог не подходит обеим.
+   */
+  function setThresholds(thresholds) {
+    if (!thresholds || typeof thresholds !== 'object') return;
+
+    for (const key of ['minOnsetRms', 'minReleaseRms']) {
+      const value = thresholds[key];
+      if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+        config[key] = value;
+      }
+    }
+
+    const seed = thresholds.noiseFloor;
+    if (typeof seed === 'number' && Number.isFinite(seed) && seed > 0) {
+      config.initialNoiseFloor = seed;
+      noiseFloor = seed;
+    }
+  }
+
+  return { push, reset, setThresholds };
 }
 
 
@@ -9561,18 +9783,79 @@ function createFindNoteListenView(elements) {
 }
 
 
+// ----- js/find-note-listen-sensitivity.js -----
+
+/**
+ * @module find-note-listen-sensitivity
+ * @description Рантайм-профили чувствительности микрофона по струнам + их сохранение.
+ * @depends persistence, pitch-sensitivity
+ */
+
+/** Профиль меняется каждый кадр, поэтому в куки он уходит редко и пачкой. */
+const SAVE_DEBOUNCE_MS = 4000;
+
+function createListenSensitivity() {
+  let profiles = defaultStringSensitivity();
+  let saveTimer = null;
+  let dirty = false;
+
+  async function load() {
+    const { preferences } = await loadAppData();
+    profiles = normalizeStringSensitivity(preferences.listen?.stringSensitivity);
+  }
+
+  function flush() {
+    if (saveTimer !== null) {
+      clearTimeout(saveTimer);
+      saveTimer = null;
+    }
+    if (!dirty) return;
+
+    dirty = false;
+    void patchAppPreferences({ listen: { stringSensitivity: profiles } });
+  }
+
+  function scheduleSave() {
+    dirty = true;
+    if (saveTimer !== null) return;
+    saveTimer = setTimeout(() => {
+      saveTimer = null;
+      flush();
+    }, SAVE_DEBOUNCE_MS);
+  }
+
+  function observe(stringIndex, rms) {
+    const profile = profiles[stringIndex];
+    if (!profile) return;
+
+    profiles[stringIndex] = observeStringLevel(profile, rms);
+    scheduleSave();
+  }
+
+  return {
+    load,
+    observe,
+    flush,
+    profileFor: (stringIndex) => profiles[stringIndex] ?? null,
+    thresholdsFor: (stringIndex) => stringThresholds(profiles[stringIndex]),
+    meterLevelFor: (stringIndex, rms) => stringMeterLevel(profiles[stringIndex], rms),
+    snapshot: () => profiles.map((profile) => ({ ...profile })),
+  };
+}
+
+
 // ----- js/mode-find-note-listen.js -----
 
 /**
  * @module mode-find-note-listen
  * @description Microphone input loop for Find Fret listen mode.
- * @depends config, fretboard, find-note-listen-view, pitch-mic, pitch-yin, pitch-note-tracker, pitch-tuning, ui-strings
+ * @depends config, fretboard, find-note-listen-view, find-note-listen-sensitivity, pitch-mic, pitch-yin, pitch-note-tracker, pitch-tuning, ui-strings
  */
 
 const ANALYSIS_INTERVAL_MS = 25;
 const MIN_CLARITY = 0.68;
-const METER_FLOOR_DB = -65;
-const METER_RANGE_DB = 55;
+/** Пороги пересчитываются на ходу — профиль струны уточняется прямо во время игры. */
+const THRESHOLD_REFRESH_MS = 500;
 
 function createFindNoteListenController({
   elements,
@@ -9584,11 +9867,32 @@ function createFindNoteListenController({
   const view = createFindNoteListenView(elements);
   const mic = createMicInput({ bufferSize: 4096 });
   const tracker = createNoteTracker();
+  const sensitivity = createListenSensitivity();
   let detector = null;
   let running = false;
   let lastAnalysis = 0;
+  let lastThresholdSync = 0;
+  let thresholdStringIndex = null;
   let submittedForLock = false;
   let startPromise = null;
+
+  /** При смене струны пороги подменяются сразу, иначе — раз в THRESHOLD_REFRESH_MS. */
+  function syncThresholds(stringIndex, now) {
+    const stringChanged = stringIndex !== thresholdStringIndex;
+    if (!stringChanged && now - lastThresholdSync < THRESHOLD_REFRESH_MS) return;
+
+    thresholdStringIndex = stringIndex;
+    lastThresholdSync = now;
+
+    const { minOnsetRms, minReleaseRms, noiseFloor } = sensitivity.thresholdsFor(stringIndex);
+    // Шумовой фон трекера сбрасывается только при смене струны: внутри одной он
+    // подстраивается сам и перезапись мешала бы этому.
+    tracker.setThresholds(
+      stringChanged
+        ? { minOnsetRms, minReleaseRms, noiseFloor }
+        : { minOnsetRms, minReleaseRms }
+    );
+  }
 
   function panelVisible() {
     return getInputMode() === FIND_INPUT.LISTEN && !elements.findNoteListenPanel?.hidden;
@@ -9651,9 +9955,9 @@ function createFindNoteListenController({
     const input = mic.read();
     if (!input) return;
 
-    const db = 20 * Math.log10(input.rms + 1e-9);
-    const level = Math.min(1, Math.max(0, (db - METER_FLOOR_DB) / METER_RANGE_DB));
-    view.setMeterLevel(level.toFixed(3));
+    sensitivity.observe(stringIndex, input.rms);
+    view.setMeterLevel(sensitivity.meterLevelFor(stringIndex, input.rms).toFixed(3));
+    syncThresholds(stringIndex, now);
 
     if (now - lastAnalysis < ANALYSIS_INTERVAL_MS) return;
     lastAnalysis = now;
@@ -9686,12 +9990,15 @@ function createFindNoteListenController({
       view.setHeard('');
 
       try {
+        await sensitivity.load();
         const { sampleRate, bufferSize } = await mic.start();
         detector = createYinDetector({ sampleRate, bufferSize });
         tracker.reset();
         submittedForLock = false;
         running = true;
         lastAnalysis = 0;
+        lastThresholdSync = 0;
+        thresholdStringIndex = null;
         view.setStatus(UI.listenStatusIdle);
         requestAnimationFrame(loop);
       } catch (error) {
@@ -9710,7 +10017,9 @@ function createFindNoteListenController({
     mic.stop();
     detector = null;
     tracker.reset();
+    sensitivity.flush();
     submittedForLock = false;
+    thresholdStringIndex = null;
     view.setPanelVisible(false);
     view.clear();
   }
@@ -9729,6 +10038,7 @@ function createFindNoteListenController({
     stop,
     resetTracker,
     setPanelVisible: view.setPanelVisible,
+    getSensitivitySnapshot: sensitivity.snapshot,
   };
 }
 
