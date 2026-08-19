@@ -319,6 +319,10 @@ body {
   top: 100%;
   margin-top: 8px;
   pointer-events: auto;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .find-note-fret-range[hidden] {
@@ -378,19 +382,38 @@ body {
 .find-note-fret-range-handle {
   position: absolute;
   top: 50%;
+  width: 44px;
+  height: 44px;
+  margin-top: -22px;
+  margin-left: -22px;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  cursor: ew-resize;
+  z-index: 2;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.find-note-fret-range-handle::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
   width: 6px;
   height: 12px;
-  margin-top: -6px;
-  margin-left: -3px;
-  padding: 0;
+  margin: -6px 0 0 -3px;
   border: 1px solid var(--fret-range-accent, var(--accent));
   border-radius: 3px;
   background: linear-gradient(180deg, #ffffff 0%, #f7f5f2 48%, #ebe8e4 100%);
   box-shadow:
     0 1px 2px rgba(28, 25, 23, 0.18),
     inset 0 1px 0 rgba(255, 255, 255, 0.95);
-  cursor: ew-resize;
-  z-index: 2;
+  pointer-events: none;
   transition: box-shadow 0.15s ease, border-color 0.15s ease;
 }
 
@@ -405,15 +428,19 @@ body {
   border-radius: 1px;
   background: var(--fret-range-accent, var(--accent));
   opacity: 0.72;
+  pointer-events: none;
 }
 
-.find-note-fret-range-handle:hover,
-.find-note-fret-range-handle:focus-visible {
+.find-note-fret-range-handle:hover::before,
+.find-note-fret-range-handle:focus-visible::before {
   border-color: var(--fret-range-accent, var(--accent-hover));
-  outline: none;
   box-shadow:
     0 1px 4px var(--fret-range-accent-glow, var(--accent-soft)),
     inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+.find-note-fret-range-handle:focus-visible {
+  outline: none;
 }
 
 .fretboard-container {
@@ -2151,7 +2178,7 @@ body.find-note-paused #guess-note-palette {
   </main>
 
   <script>
-/* GuitarNotes v1.11.0 — single-file bundle (auto-generated, do not edit) */
+/* GuitarNotes v1.12.0 — single-file bundle (auto-generated, do not edit) */
 (function () {
 "use strict";
 
@@ -2230,7 +2257,7 @@ const OPEN_STRING_FRET_LABEL = 'open';
 
 // ----- js/version.js -----
 
-const APP_VERSION = '1.11.0';
+const APP_VERSION = '1.12.0';
 
 
 // ----- js/ui-strings.js -----
@@ -8776,6 +8803,23 @@ function drawHeatmapBoard(ctx, L, geom, options = {}) {
  * @description Score dots for stats heatmap (prototype port).
  */
 
+/**
+ * iPad Safari не рисует canvas `fillText` со `system-ui` / `-apple-system`.
+ * Helvetica есть на iOS и desktop и даёт видимые цифры внутри кружков.
+ */
+const CANVAS_LABEL_FONT_FAMILY = '"Helvetica Neue", Helvetica, Arial, sans-serif';
+const LABEL_MIN_FONT_PX = 10;
+
+function heatmapLabelFont(fontSize) {
+  return `bold ${fontSize}px ${CANVAS_LABEL_FONT_FAMILY}`;
+}
+
+function heatmapLabelFontSize(radius, label = '') {
+  const cap = String(label).length > 2 ? 11 : 12;
+  const fromRadius = Number.isFinite(radius) ? radius * 1.2 : LABEL_MIN_FONT_PX;
+  return Math.max(LABEL_MIN_FONT_PX, Math.min(Math.round(fromRadius), cap));
+}
+
 const heatmapDots = (() => {
   function cellCenterMm(geom, fret) {
     return fret === 0 ? geom.boardStartMm() / 2 : geom.fretCenterMm(fret);
@@ -8818,14 +8862,19 @@ const heatmapDots = (() => {
     if (!label || style.empty) return;
 
     const radius = cell.r * style.radiusScale;
-    if (radius < 7) return;
+    const fontSize = heatmapLabelFontSize(radius, label);
+    const x = Math.round(cell.cx);
+    const y = Math.round(cell.cy);
 
-    const fontSize = Math.max(7, Math.min(radius * 1.25, label.length > 2 ? 9 : 10));
-    ctx.font = `700 ${fontSize}px system-ui, -apple-system, sans-serif`;
+    ctx.font = heatmapLabelFont(fontSize);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = Math.max(2, fontSize * 0.16);
+    ctx.strokeStyle = 'rgba(18, 24, 32, 0.45)';
+    ctx.strokeText(label, x, y);
     ctx.fillStyle = labelTextColor(style);
-    ctx.fillText(label, cell.cx, cell.cy);
+    ctx.fillText(label, x, y);
   }
 
   function drawDot(ctx, cell, style, label = null) {
@@ -10741,6 +10790,7 @@ function createFindNoteFretRangeController({
 
   function onPointerMove(event) {
     if (!draggingEdge) return;
+    event.preventDefault();
 
     const hitLayout = getHitLayout();
     if (!hitLayout) return;
@@ -10771,9 +10821,13 @@ function createFindNoteFretRangeController({
   }
 
   function startDragging(edge, event) {
+    if (event.button != null && event.button !== 0) return;
+
     draggingEdge = edge;
     event.preventDefault();
-    window.addEventListener('pointermove', onPointerMove);
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    window.addEventListener('pointermove', onPointerMove, { passive: false });
     window.addEventListener('pointerup', stopDragging);
     window.addEventListener('pointercancel', stopDragging);
   }
