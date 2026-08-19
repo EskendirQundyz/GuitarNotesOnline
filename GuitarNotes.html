@@ -1826,11 +1826,14 @@ body.find-note-paused #guess-note-palette {
   gap: 6px;
   width: 100%;
   padding: 8px 0 4px;
+  font-size: calc(13px * var(--note-chip-scale, 1));
 }
 
 .note-palette > .note-palette-btn {
   width: calc(var(--note-chip-width, 72px) * var(--note-chip-scale, 1));
-  font-size: calc(13px * var(--note-chip-scale, 1));
+  font-size: inherit;
+  -webkit-text-size-adjust: none;
+  text-size-adjust: none;
 }
 
 .note-palette-btn {
@@ -1912,10 +1915,14 @@ body.find-note-paused #guess-note-palette {
 }
 
 @media (max-width: 600px) {
+  .note-palette {
+    font-size: calc(12px * var(--note-chip-scale, 1));
+  }
+
   .note-palette > .note-palette-btn {
     width: calc(var(--note-chip-width, 72px) * var(--note-chip-scale, 1));
     min-width: 0;
-    font-size: calc(12px * var(--note-chip-scale, 1));
+    font-size: inherit;
   }
 }
   </style>
