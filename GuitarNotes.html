@@ -5748,6 +5748,14 @@ function measureNoteChipContentWidth() {
 
 // Layout width at which palette chips use the legacy base size (75px / 13px).
 const NOTE_CHIP_BASE_LAYOUT_WIDTH = 1252;
+// Steeper shrink below base width so chips stay smaller on tablet (padding does not scale).
+const NOTE_CHIP_NARROW_LAYOUT_EXPONENT = 1.55;
+
+function narrowLayoutScale(layoutW) {
+  if (layoutW <= 0 || layoutW >= NOTE_CHIP_BASE_LAYOUT_WIDTH) return 1;
+  const ratio = layoutW / NOTE_CHIP_BASE_LAYOUT_WIDTH;
+  return ratio ** NOTE_CHIP_NARROW_LAYOUT_EXPONENT;
+}
 
 function measureFretboardDisplayScale(section) {
   const container =
@@ -5757,38 +5765,66 @@ function measureFretboardDisplayScale(section) {
 
   const svg = container.querySelector('.fretboard-canvas-stage svg.fretboard-overlay');
   const canvas = container.querySelector('canvas.fretboard-canvas');
-  const target = svg ?? canvas;
 
-  const layoutW = svg?.viewBox?.baseVal?.width ?? container.clientWidth ?? 0;
+  const containerW = container.clientWidth || 0;
+  const canvasAttrW = Number(canvas?.getAttribute('width')) || 0;
+  const layoutW =
+    canvasAttrW ||
+    svg?.viewBox?.baseVal?.width ||
+    containerW ||
+    0;
 
   let displayWidth = 0;
-  if (target) {
-    const rect = target.getBoundingClientRect();
+  if (canvas) {
+    const rect = canvas.getBoundingClientRect();
     if (rect.width > 0) displayWidth = rect.width;
   }
 
-  if (!displayWidth && layoutW > 0) {
-    displayWidth = layoutW;
-  }
+  const layoutIsStale =
+    containerW > 0 && canvasAttrW > 0 && Math.abs(containerW - canvasAttrW) > 1;
+  const effectiveLayoutW = layoutIsStale ? containerW : layoutW || containerW;
+  const effectiveDisplayW = layoutIsStale
+    ? containerW
+    : displayWidth || effectiveLayoutW;
 
-  if (!displayWidth) return 1;
+  if (!effectiveDisplayW) return 1;
 
-  const zoomScale = layoutW > 0 ? displayWidth / layoutW : 1;
-  const layoutScale =
-    layoutW > 0 ? Math.min(1, layoutW / NOTE_CHIP_BASE_LAYOUT_WIDTH) : 1;
+  const zoomScale =
+    effectiveLayoutW > 0 ? effectiveDisplayW / effectiveLayoutW : 1;
+  const layoutScale = narrowLayoutScale(effectiveLayoutW);
 
   return zoomScale * layoutScale;
 }
 
 let viewportSyncBound = false;
+let viewportSyncFrame = 0;
 
 function bindNoteChipViewportSync(section) {
   if (viewportSyncBound || typeof window === 'undefined') return;
   viewportSyncBound = true;
 
-  const sync = () => syncNoteChipWidth(section);
-  window.addEventListener('resize', sync);
-  window.visualViewport?.addEventListener('resize', sync);
+  const scheduleSync = () => {
+    if (viewportSyncFrame) cancelAnimationFrame(viewportSyncFrame);
+    viewportSyncFrame = requestAnimationFrame(() => {
+      viewportSyncFrame = 0;
+      syncNoteChipWidth(section);
+    });
+  };
+
+  window.addEventListener('resize', scheduleSync);
+  window.visualViewport?.addEventListener('resize', scheduleSync);
+
+  const host = section ?? document.querySelector('.fretboard-section');
+  const container =
+    host?.querySelector?.('#fretboard-container') ??
+    document.getElementById('fretboard-container');
+
+  if (container && typeof ResizeObserver !== 'undefined') {
+    const observer = new ResizeObserver(scheduleSync);
+    observer.observe(container);
+    const canvas = container.querySelector('canvas.fretboard-canvas');
+    if (canvas) observer.observe(canvas);
+  }
 }
 
 function syncNoteChipWidth(section = document.querySelector('.fretboard-section')) {
